@@ -119,7 +119,7 @@ func (suite *handlerTestSuite) TestHandlerEmptyURL() {
 	suite.m.ServeHTTP(rr, req)
 	rr.Result().Body.Close()
 
-	suite.Equal(http.StatusNotFound, rr.Result().StatusCode)
+	suite.Equal(http.StatusNotFound, rr.Result().StatusCode, rr.Result().Body.Close())
 	rr.Result().Body.Close() // needed?
 	suite.Equal("not found\n", rr.Body.String())
 	rr.Result().Body.Close()
