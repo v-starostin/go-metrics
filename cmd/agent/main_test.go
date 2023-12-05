@@ -22,7 +22,6 @@ func TestSendMetrics(t *testing.T) {
 		// {Type: "counter", Name: "metric3", Value: 3},
 	}
 	t.Run("good case", func(t *testing.T) {
-		req := &http.Request{Method: http.MethodPost}
 		req, err := http.NewRequest(http.MethodPost, "http://0.0.0.0:8080/update/gauge/metric1/12", nil)
 		assert.NoError(t, err)
 		req.Header.Add("Content-Type", "text/plain")

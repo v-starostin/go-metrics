@@ -114,10 +114,13 @@ func (suite *handlerTestSuite) TestHandlerEmptyURL() {
 	suite.NoError(err)
 
 	rr := httptest.NewRecorder()
+	rr.Result().Body.Close()
 
 	suite.m.ServeHTTP(rr, req)
+	rr.Result().Body.Close()
 
 	suite.Equal(http.StatusNotFound, rr.Result().StatusCode)
-	defer rr.Result().Body.Close() // needed?
+	rr.Result().Body.Close() // needed?
 	suite.Equal("not found\n", rr.Body.String())
+	rr.Result().Body.Close()
 }
