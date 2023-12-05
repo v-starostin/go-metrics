@@ -49,6 +49,7 @@ func (suite *handlerTestSuite) TestHandlerServiceOK() {
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(nil)
 	suite.m.ServeHTTP(rr, req)
+	defer rr.Result().Body.Close() // needed?
 
 	suite.Equal(http.StatusOK, rr.Result().StatusCode)
 	suite.Equal("metric metric1 of type gauge with value 1.23 has been set successfully", rr.Body.String())
@@ -62,6 +63,7 @@ func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(service.ErrParseMetric)
 	suite.m.ServeHTTP(rr, req)
+	defer rr.Result().Body.Close() // needed?
 
 	suite.Equal(http.StatusBadRequest, rr.Result().StatusCode)
 	suite.Equal("bad request\n", rr.Body.String())
@@ -75,6 +77,7 @@ func (suite *handlerTestSuite) TestHandlerServiceError() {
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(errors.New("err"))
 	suite.m.ServeHTTP(rr, req)
+	defer rr.Result().Body.Close() // needed?
 
 	suite.Equal(http.StatusInternalServerError, rr.Result().StatusCode)
 	suite.Equal("service error\n", rr.Body.String())
@@ -87,6 +90,7 @@ func (suite *handlerTestSuite) TestHandlerGetRequest() {
 	rr := httptest.NewRecorder()
 
 	suite.m.ServeHTTP(rr, req)
+	defer rr.Result().Body.Close() // needed?
 
 	suite.Equal(http.StatusBadRequest, rr.Result().StatusCode)
 	suite.Equal("method GET is not supported\n", rr.Body.String())
@@ -99,6 +103,7 @@ func (suite *handlerTestSuite) TestHandlerWrongCommand() {
 	rr := httptest.NewRecorder()
 
 	suite.m.ServeHTTP(rr, req)
+	defer rr.Result().Body.Close() // needed?
 
 	suite.Equal(http.StatusBadRequest, rr.Result().StatusCode)
 	suite.Equal("bad request\n", rr.Body.String())
@@ -111,6 +116,7 @@ func (suite *handlerTestSuite) TestHandlerEmptyURL() {
 	rr := httptest.NewRecorder()
 
 	suite.m.ServeHTTP(rr, req)
+	defer rr.Result().Body.Close() // needed?
 
 	suite.Equal(http.StatusNotFound, rr.Result().StatusCode)
 	suite.Equal("not found\n", rr.Body.String())

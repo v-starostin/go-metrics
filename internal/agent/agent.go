@@ -26,7 +26,7 @@ func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric)
 		go func() {
 			defer wg.Done()
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("~~~~http://0.0.0.0:8080/update/%s/%s/%v", m.Type, m.Name, m.Value), nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://0.0.0.0:8080/update/%s/%s/%v", m.Type, m.Name, m.Value), nil)
 			if err != nil {
 				log.Fatal(err)
 			}
