@@ -3,37 +3,39 @@ package agent
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
-func SendMetrics(ctx context.Context, metrics []model.Metric) error {
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(metrics))
-	client := http.Client{Timeout: 3 * time.Minute}
 
 	for _, m := range metrics {
 		m := m
 
-		go func() error {
+		go func() {
 			defer wg.Done()
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://0.0.0.0:8080/update/%s/%s/%v", m.Type, m.Name, m.Value), nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("~~~~http://0.0.0.0:8080/update/%s/%s/%v", m.Type, m.Name, m.Value), nil)
 			if err != nil {
-				return err
+				log.Fatal(err)
 			}
 			req.Header.Add("Content-Type", "text/plain")
 			res, err := client.Do(req)
 			if err != nil {
-				return err
+				log.Fatal(err)
 			}
 			res.Body.Close()
-			return nil
 		}()
 	}
 

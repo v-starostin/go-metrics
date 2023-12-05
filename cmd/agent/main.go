@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
@@ -19,6 +20,9 @@ var (
 )
 
 func main() {
+	client := &http.Client{
+		Timeout: time.Minute,
+	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
@@ -40,7 +44,7 @@ loop:
 		case <-report.C:
 			metrics = append(metrics, model.Metric{Type: "counter", Name: "PollCount", Value: counter})
 			fmt.Printf("sending: %+v\n\n", metrics)
-			if err := agent.SendMetrics(ctx, metrics); err != nil {
+			if err := agent.SendMetrics(ctx, client, metrics); err != nil {
 				log.Fatal(err)
 			}
 		case <-ctx.Done():
@@ -50,6 +54,4 @@ loop:
 			break loop
 		}
 	}
-
-	log.Println("Agent is shutdowned gracefully")
 }
