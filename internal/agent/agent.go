@@ -28,12 +28,14 @@ func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric)
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://0.0.0.0:8080/update/%s/%s/%v", m.Type, m.Name, m.Value), nil)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return
 			}
 			req.Header.Add("Content-Type", "text/plain")
 			res, err := client.Do(req)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return
 			}
 			res.Body.Close()
 		}()
