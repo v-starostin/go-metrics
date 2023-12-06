@@ -67,10 +67,13 @@ func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(service.ErrParseMetric)
 	suite.m.ServeHTTP(rr, req)
-	defer rr.Result().Body.Close() // needed? go vet still reports issue
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
 
-	suite.Equal(http.StatusBadRequest, rr.Result().StatusCode)
-	suite.Equal("bad request\n", rr.Body.String())
+	suite.Equal(http.StatusBadRequest, res.StatusCode)
+	suite.Equal("bad request\n", string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerServiceError() {
@@ -81,10 +84,13 @@ func (suite *handlerTestSuite) TestHandlerServiceError() {
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(errors.New("err"))
 	suite.m.ServeHTTP(rr, req)
-	defer rr.Result().Body.Close() // needed? go vet still reports issue
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
 
-	suite.Equal(http.StatusInternalServerError, rr.Result().StatusCode)
-	suite.Equal("service error\n", rr.Body.String())
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal("service error\n", string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerGetRequest() {
@@ -94,10 +100,13 @@ func (suite *handlerTestSuite) TestHandlerGetRequest() {
 	rr := httptest.NewRecorder()
 
 	suite.m.ServeHTTP(rr, req)
-	defer rr.Result().Body.Close() // needed? go vet still reports issue
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
 
-	suite.Equal(http.StatusBadRequest, rr.Result().StatusCode)
-	suite.Equal("method GET is not supported\n", rr.Body.String())
+	suite.Equal(http.StatusBadRequest, res.StatusCode)
+	suite.Equal("method GET is not supported\n", string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerWrongCommand() {
@@ -107,10 +116,13 @@ func (suite *handlerTestSuite) TestHandlerWrongCommand() {
 	rr := httptest.NewRecorder()
 
 	suite.m.ServeHTTP(rr, req)
-	defer rr.Result().Body.Close() // needed? go vet still reports issue
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
 
-	suite.Equal(http.StatusBadRequest, rr.Result().StatusCode)
-	suite.Equal("bad request\n", rr.Body.String())
+	suite.Equal(http.StatusBadRequest, res.StatusCode)
+	suite.Equal("bad request\n", string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerEmptyURL() {
@@ -120,8 +132,11 @@ func (suite *handlerTestSuite) TestHandlerEmptyURL() {
 	rr := httptest.NewRecorder()
 
 	suite.m.ServeHTTP(rr, req)
-	defer rr.Result().Body.Close() // needed? go vet still reports issue
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
 
-	suite.Equal(http.StatusNotFound, rr.Result().StatusCode)
-	suite.Equal("not found\n", rr.Body.String())
+	suite.Equal(http.StatusNotFound, res.StatusCode)
+	suite.Equal("not found\n", string(resBody))
 }
