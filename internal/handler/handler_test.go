@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -49,10 +50,13 @@ func (suite *handlerTestSuite) TestHandlerServiceOK() {
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(nil)
 	suite.m.ServeHTTP(rr, req)
-	defer rr.Result().Body.Close() // needed? go vet still reports issue
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
 
-	suite.Equal(http.StatusOK, rr.Result().StatusCode)
-	suite.Equal("metric metric1 of type gauge with value 1.23 has been set successfully", rr.Body.String())
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal("metric metric1 of type gauge with value 1.23 has been set successfully", string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
