@@ -1,11 +1,15 @@
 package handler
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
-	"strings"
 
+	"github.com/go-chi/chi/v5"
+
+	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
@@ -21,45 +25,71 @@ func New(s Service) *Handler {
 
 type Service interface {
 	Save(mtype, mname, mvalue string) error
+	Metric(mtype, mname string) (*model.Metric, error)
+	Metrics() (model.Data, error)
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	p := r.URL.EscapedPath()
-	trimmed := strings.Trim(p, "/")
-	url := strings.Split(trimmed, "/")
+	// cmd := chi.URLParam(r, "cmd")
+	mtype := chi.URLParam(r, "type")
+	mname := chi.URLParam(r, "name")
+	mvalue := chi.URLParam(r, "value")
 
-	if url == nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-	if len(url) != 4 {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-
-	cmd, mtype, mname, mvalue := url[0], url[1], url[2], url[3]
+	// fmt.Println(cmd)
+	fmt.Println(mtype)
+	fmt.Println(mname)
+	fmt.Println(mvalue)
+	fmt.Println()
 
 	if r.Method == http.MethodPost {
-		if cmd != service.CmdUpdate || mtype != service.TypeCounter && mtype != service.TypeGauge {
-			http.Error(w, "bad request", http.StatusBadRequest)
+		if mtype != service.TypeCounter && mtype != service.TypeGauge {
+			writeResponse(w, http.StatusBadRequest, model.Error{Error: "bad request"})
 			return
 		}
 
 		if err := h.service.Save(mtype, mname, mvalue); err != nil {
 			if errors.Is(err, service.ErrParseMetric) {
-				http.Error(w, "bad request", http.StatusBadRequest)
+				writeResponse(w, http.StatusBadRequest, model.Error{Error: "bad request"})
 				return
 			}
 
-			http.Error(w, "service error", http.StatusInternalServerError)
+			writeResponse(w, http.StatusInternalServerError, model.Error{Error: "internal server error"})
+			return
+		}
+		writeResponse(w, http.StatusOK, fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue))
+	}
+
+	if r.Method == http.MethodGet {
+		if mtype == "" || mname == "" {
+			metrics, err := h.service.Metrics()
+			if err != nil {
+				return
+			}
+			fmt.Printf("metrics: %+v\n", metrics)
+
+			tmpl, err := template.New("metrics").Parse(model.HTMLTemplateString)
+			if err != nil {
+				return
+			}
+			buf := bytes.Buffer{}
+			// fmt.Printf("buf: %+v\n", buf)
+			if err := tmpl.Execute(&buf, metrics); err != nil {
+				return
+			}
+			fmt.Printf("buf: %+v\n", buf.String())
+			w.Write(buf.Bytes())
+			// writeResponse(w, http.StatusOK, buf)
 			return
 		}
 
-		w.Header().Add("Content-Type", "text-plain")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue)))
-	} else {
-		http.Error(w, fmt.Sprintf("method %s is not supported", r.Method), http.StatusBadRequest)
+		metric, err := h.service.Metric(mtype, mname)
+		if err != nil {
+			writeResponse(w, http.StatusNotFound, model.Error{Error: "metric not found"})
+			return
+		}
+
+		writeResponse(w, http.StatusOK, metric)
+
 		return
 	}
 

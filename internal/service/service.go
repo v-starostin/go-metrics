@@ -1,16 +1,20 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/pkg/errors"
+
+	"github.com/v-starostin/go-metrics/internal/model"
 )
 
 const (
 	TypeCounter = "counter"
 	TypeGauge   = "gauge"
 	CmdUpdate   = "update"
+	CmdValue    = "value"
 )
 
 var (
@@ -25,10 +29,30 @@ type Service struct {
 type Repository interface {
 	StoreCounter(mtype, mname string, mvalue int64) bool
 	StoreGauge(mtype, mname string, mvalue float64) bool
+	Load(mtype, mname string) *model.Metric
+	LoadAll() model.Data
 }
 
 func New(repo Repository) *Service {
 	return &Service{repo: repo}
+}
+
+func (s *Service) Metric(mtype, mname string) (*model.Metric, error) {
+	m := s.repo.Load(mtype, mname)
+	if m == nil {
+		return nil, fmt.Errorf("failed to load metric %s", mname)
+	}
+
+	return m, nil
+}
+
+func (s *Service) Metrics() (model.Data, error) {
+	m := s.repo.LoadAll()
+	if m == nil {
+		return nil, errors.New("failed to load metrics")
+	}
+
+	return m, nil
 }
 
 func (s *Service) Save(mtype, mname, mvalue string) error {
