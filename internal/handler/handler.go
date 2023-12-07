@@ -99,7 +99,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if mtype == service.TypeGauge {
-			w.Write([]byte(fmt.Sprintf("%.6f", metric.Value.(float64))))
+			w.Write([]byte(fmt.Sprintf("%.3f", metric.Value.(float64))))
 		}
 		if mtype == service.TypeCounter {
 			w.Write([]byte(fmt.Sprintf("%d", metric.Value.(int64))))
