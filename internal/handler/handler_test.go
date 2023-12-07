@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/v-starostin/go-metrics/internal/handler"
@@ -23,18 +24,23 @@ const (
 
 type handlerTestSuite struct {
 	suite.Suite
-	m       *http.ServeMux
+	// m       *http.ServeMux
+	r       *chi.Mux
 	service *mock.Service
 }
 
 func (suite *handlerTestSuite) SetupTest() {
 	service := &mock.Service{}
 	h := handler.New(service)
-	m := http.NewServeMux()
-	m.Handle(updatePath, h)
-	m.Handle(upgradePath, h)
-	m.Handle(wrongPath, h)
-	suite.m = m
+	// m := http.NewServeMux()
+	// m.Handle(updatePath, h)
+	// m.Handle(upgradePath, h)
+	// m.Handle(wrongPath, h)
+	r := chi.NewRouter()
+	r.Get("/", h.ServeHTTP)
+	r.Get("/value/{type}/{name}", h.ServeHTTP)
+	r.Post("/update/{type}/{name}/{value}", h.ServeHTTP)
+	suite.r = r
 	suite.service = service
 }
 
@@ -49,7 +55,7 @@ func (suite *handlerTestSuite) TestHandlerServiceOK() {
 	rr := httptest.NewRecorder()
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(nil)
-	suite.m.ServeHTTP(rr, req)
+	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
 	resBody, err := io.ReadAll(res.Body)
@@ -66,7 +72,7 @@ func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
 	rr := httptest.NewRecorder()
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(service.ErrParseMetric)
-	suite.m.ServeHTTP(rr, req)
+	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
 	resBody, err := io.ReadAll(res.Body)
@@ -83,14 +89,14 @@ func (suite *handlerTestSuite) TestHandlerServiceError() {
 	rr := httptest.NewRecorder()
 
 	suite.service.On("Save", "gauge", "metric1", "1.23").Once().Return(errors.New("err"))
-	suite.m.ServeHTTP(rr, req)
+	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
 	resBody, err := io.ReadAll(res.Body)
 	suite.NoError(err)
 
 	suite.Equal(http.StatusInternalServerError, res.StatusCode)
-	suite.Equal("service error\n", string(resBody))
+	suite.Equal("internal server error\n", string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerGetRequest() {
@@ -99,14 +105,11 @@ func (suite *handlerTestSuite) TestHandlerGetRequest() {
 
 	rr := httptest.NewRecorder()
 
-	suite.m.ServeHTTP(rr, req)
+	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
-	resBody, err := io.ReadAll(res.Body)
-	suite.NoError(err)
 
-	suite.Equal(http.StatusBadRequest, res.StatusCode)
-	suite.Equal("method GET is not supported\n", string(resBody))
+	suite.Equal(http.StatusMethodNotAllowed, res.StatusCode)
 }
 
 func (suite *handlerTestSuite) TestHandlerWrongCommand() {
@@ -115,14 +118,14 @@ func (suite *handlerTestSuite) TestHandlerWrongCommand() {
 
 	rr := httptest.NewRecorder()
 
-	suite.m.ServeHTTP(rr, req)
+	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
 	resBody, err := io.ReadAll(res.Body)
 	suite.NoError(err)
 
-	suite.Equal(http.StatusBadRequest, res.StatusCode)
-	suite.Equal("bad request\n", string(resBody))
+	suite.Equal(http.StatusNotFound, res.StatusCode)
+	suite.Equal("404 page not found\n", string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerEmptyURL() {
@@ -131,12 +134,12 @@ func (suite *handlerTestSuite) TestHandlerEmptyURL() {
 
 	rr := httptest.NewRecorder()
 
-	suite.m.ServeHTTP(rr, req)
+	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
 	resBody, err := io.ReadAll(res.Body)
 	suite.NoError(err)
 
 	suite.Equal(http.StatusNotFound, res.StatusCode)
-	suite.Equal("not found\n", string(resBody))
+	suite.Equal("404 page not found\n", string(resBody))
 }

@@ -43,20 +43,28 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		if mtype != service.TypeCounter && mtype != service.TypeGauge {
-			writeResponse(w, http.StatusBadRequest, model.Error{Error: "bad request"})
+			// writeResponse(w, http.StatusBadRequest, model.Error{Error: "bad request"})
+			w.WriteHeader(http.StatusBadRequest)
+			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
 
 		if err := h.service.Save(mtype, mname, mvalue); err != nil {
 			if errors.Is(err, service.ErrParseMetric) {
-				writeResponse(w, http.StatusBadRequest, model.Error{Error: "bad request"})
+				// writeResponse(w, http.StatusBadRequest, model.Error{Error: "bad request"})
+				w.WriteHeader(http.StatusBadRequest)
+				http.Error(w, "bad request", http.StatusBadRequest)
 				return
 			}
 
-			writeResponse(w, http.StatusInternalServerError, model.Error{Error: "internal server error"})
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			// writeResponse(w, http.StatusInternalServerError, model.Error{Error: "internal server error"})
 			return
 		}
-		writeResponse(w, http.StatusOK, fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue))
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue)))
+		// writeResponse(w, http.StatusOK, fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue))
 	}
 
 	if r.Method == http.MethodGet {
@@ -84,11 +92,20 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		metric, err := h.service.Metric(mtype, mname)
 		if err != nil {
-			writeResponse(w, http.StatusNotFound, model.Error{Error: "metric not found"})
+			w.WriteHeader(http.StatusNotFound)
+			http.Error(w, "metric not found", http.StatusNotFound)
+			// writeResponse(w, http.StatusNotFound, model.Error{Error: "metric not found"})
 			return
 		}
 
-		writeResponse(w, http.StatusOK, metric)
+		if mtype == service.TypeGauge {
+			w.Write([]byte(fmt.Sprintf("%f", metric.Value.(float64))))
+		}
+		if mtype == service.TypeCounter {
+			w.Write([]byte(fmt.Sprintf("%d", metric.Value.(int64))))
+		}
+		w.WriteHeader(http.StatusOK)
+		// writeResponse(w, http.StatusOK, metric)
 
 		return
 	}
