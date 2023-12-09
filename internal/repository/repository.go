@@ -6,8 +6,6 @@ import (
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
-// type Data map[string]map[string]any
-
 type MemStorage struct {
 	data model.Data
 }
@@ -70,12 +68,13 @@ func (s *MemStorage) StoreGauge(mtype, mname string, mvalue float64) bool {
 		}
 		return true
 	}
-	// fix
-	_, ok = gauge[mname]
-	if !ok {
-		gauge[mname] = model.Metric{Name: mname, Type: mtype, Value: mvalue}
-		return true
-	}
+
+	// _, ok = gauge[mname]
+	// if !ok {
+	// 	gauge[mname] = model.Metric{Name: mname, Type: mtype, Value: mvalue}
+	// 	return true
+	// }
+
 	gauge[mname] = model.Metric{Name: mname, Type: mtype, Value: mvalue}
 	log.Printf("storage content: %+v\n", s.data)
 

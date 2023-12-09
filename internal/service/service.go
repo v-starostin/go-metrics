@@ -67,7 +67,6 @@ func (s *Service) Save(mtype, mname, mvalue string) error {
 		if ok := s.repo.StoreCounter(mtype, mname, value); !ok {
 			return ErrStoreData
 		}
-
 		return nil
 	}
 
@@ -82,7 +81,6 @@ func (s *Service) Save(mtype, mname, mvalue string) error {
 		if ok := s.repo.StoreGauge(mtype, mname, value); !ok {
 			return ErrStoreData
 		}
-
 		return nil
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 	"github.com/v-starostin/go-metrics/internal/mock"
+	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
@@ -23,6 +24,79 @@ func (suite *serviceTestSuite) SetupTest() {
 
 func TestService(t *testing.T) {
 	suite.Run(t, new(serviceTestSuite))
+}
+
+func (suite *serviceTestSuite) TestMetric() {
+
+	tt := []struct {
+		name        string
+		expected    *model.Metric
+		metric      *model.Metric
+		expectedErr string
+	}{
+		{
+			name:     "good case",
+			metric:   &model.Metric{Type: "gauge", Name: "metric2", Value: float64(1.23)},
+			expected: &model.Metric{Type: "gauge", Name: "metric2", Value: float64(1.23)},
+		},
+		{
+			name:        "bad case",
+			metric:      &model.Metric{Type: "gauge", Name: "metric1", Value: float64(1.23)},
+			expectedErr: "failed to load metric metric1",
+		},
+	}
+
+	for _, test := range tt {
+		suite.Run(test.name, func() {
+			suite.repo.On("Load", test.metric.Type, test.metric.Name).Once().Return(test.expected)
+
+			got, err := suite.service.Metric(test.metric.Type, test.metric.Name)
+			if err != nil {
+				suite.EqualError(err, test.expectedErr)
+			} else {
+				suite.Equal(test.expected, got)
+			}
+		})
+	}
+}
+
+func (suite *serviceTestSuite) TestMetrics() {
+	m1 := model.Metric{Type: "counter", Name: "metric1", Value: int64(10)}
+	m2 := model.Metric{Type: "gauge", Name: "metric1", Value: float64(1.23)}
+	m3 := model.Metric{Type: "gauge", Name: "metric2", Value: float64(1.24)}
+
+	data := model.Data(map[string]map[string]model.Metric{
+		"counter": {"metric1": m1},
+		"gauge":   {"metric1": m2, "metric2": m3},
+	})
+
+	tt := []struct {
+		name        string
+		expectedErr string
+		expected    model.Data
+	}{
+		{
+			name:     "good case",
+			expected: data,
+		},
+		{
+			name:        "bad case",
+			expectedErr: "failed to load metrics",
+		},
+	}
+
+	for _, test := range tt {
+		suite.Run(test.name, func() {
+			suite.repo.On("LoadAll").Once().Return(test.expected)
+
+			got, err := suite.service.Metrics()
+			if err != nil {
+				suite.EqualError(err, test.expectedErr)
+			} else {
+				suite.Equal(test.expected, got)
+			}
+		})
+	}
 }
 
 func (suite *serviceTestSuite) TestServiceSave() {

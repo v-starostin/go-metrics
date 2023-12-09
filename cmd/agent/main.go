@@ -16,19 +16,16 @@ import (
 )
 
 func main() {
-	// parseFlags()
+	var metrics []model.Metric
+	counter := int64(0)
 	cfg := config.NewAgent()
-
+	poll := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
+	report := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 	client := &http.Client{
 		Timeout: time.Minute,
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
-
-	var metrics []model.Metric
-	var counter int64
-	var poll = time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
-	var report = time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 
 loop:
 	for {

@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-	// parseFlags()
 	cfg := config.NewServer()
 	repo := repository.New()
 	srv := service.New(repo)
@@ -22,12 +21,11 @@ func main() {
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", h)
-		r.Method(http.MethodGet, "/update/{type}/{name}", h)
 		r.Method(http.MethodGet, "/value/{type}/{name}", h)
 		r.Method(http.MethodGet, "/", h)
 	})
 
-	log.Printf("Server is listerning on :%s", cfg.ServerAddress)
+	log.Printf("Server is listerning on %s", cfg.ServerAddress)
 	err := http.ListenAndServe(cfg.ServerAddress, r)
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)

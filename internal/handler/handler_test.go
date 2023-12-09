@@ -12,19 +12,23 @@ import (
 
 	"github.com/v-starostin/go-metrics/internal/handler"
 	"github.com/v-starostin/go-metrics/internal/mock"
+	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
 const (
-	address     = "http://0.0.0.0:8080"
-	updatePath  = "/update/gauge/metric1/1.23"
-	upgradePath = "/upgrade/gauge/metric1/1.23"
-	wrongPath   = "/update/counter/metric2"
+	address         = "http://0.0.0.0:8080"
+	updatePath      = "/update/gauge/metric1/1.23"
+	upgradePath     = "/upgrade/gauge/metric1/1.23"
+	getGaugePath    = "/value/gauge/metric1"
+	getCounterPath  = "/value/counter/metric1"
+	getAllPath      = "/"
+	wrongPath       = "/update/counter/metric2"
+	wrongMetricType = "/update/gauges/metric1/1.23"
 )
 
 type handlerTestSuite struct {
 	suite.Suite
-	// m       *http.ServeMux
 	r       *chi.Mux
 	service *mock.Service
 }
@@ -32,10 +36,6 @@ type handlerTestSuite struct {
 func (suite *handlerTestSuite) SetupTest() {
 	service := &mock.Service{}
 	h := handler.New(service)
-	// m := http.NewServeMux()
-	// m.Handle(updatePath, h)
-	// m.Handle(upgradePath, h)
-	// m.Handle(wrongPath, h)
 	r := chi.NewRouter()
 	r.Get("/", h.ServeHTTP)
 	r.Get("/value/{type}/{name}", h.ServeHTTP)
@@ -99,21 +99,8 @@ func (suite *handlerTestSuite) TestHandlerServiceError() {
 	suite.Equal("internal server error\n", string(resBody))
 }
 
-func (suite *handlerTestSuite) TestHandlerGetRequest() {
-	req, err := http.NewRequest(http.MethodGet, address+updatePath, nil)
-	suite.NoError(err)
-
-	rr := httptest.NewRecorder()
-
-	suite.r.ServeHTTP(rr, req)
-	res := rr.Result()
-	defer res.Body.Close()
-
-	suite.Equal(http.StatusMethodNotAllowed, res.StatusCode)
-}
-
-func (suite *handlerTestSuite) TestHandlerWrongCommand() {
-	req, err := http.NewRequest(http.MethodPost, address+upgradePath, nil)
+func (suite *handlerTestSuite) TestHandlerWrongMetricType() {
+	req, err := http.NewRequest(http.MethodPost, address+wrongMetricType, nil)
 	suite.NoError(err)
 
 	rr := httptest.NewRecorder()
@@ -124,15 +111,18 @@ func (suite *handlerTestSuite) TestHandlerWrongCommand() {
 	resBody, err := io.ReadAll(res.Body)
 	suite.NoError(err)
 
-	suite.Equal(http.StatusNotFound, res.StatusCode)
-	suite.Equal("404 page not found\n", string(resBody))
+	suite.Equal(http.StatusBadRequest, res.StatusCode)
+	suite.Equal("bad request\n", string(resBody))
 }
 
-func (suite *handlerTestSuite) TestHandlerEmptyURL() {
-	req, err := http.NewRequest(http.MethodPost, address+wrongPath, nil)
+func (suite *handlerTestSuite) TestHandlerGetGaugeOK() {
+	req, err := http.NewRequest(http.MethodGet, address+getGaugePath, nil)
 	suite.NoError(err)
 
 	rr := httptest.NewRecorder()
+
+	m := &model.Metric{Type: "gauge", Name: "metric1", Value: float64(1.23)}
+	suite.service.On("Metric", m.Type, m.Name).Once().Return(m, nil)
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -140,6 +130,107 @@ func (suite *handlerTestSuite) TestHandlerEmptyURL() {
 	resBody, err := io.ReadAll(res.Body)
 	suite.NoError(err)
 
-	suite.Equal(http.StatusNotFound, res.StatusCode)
-	suite.Equal("404 page not found\n", string(resBody))
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal("1.23", string(resBody))
 }
+
+func (suite *handlerTestSuite) TestHandlerGetCounterOK() {
+	req, err := http.NewRequest(http.MethodGet, address+getCounterPath, nil)
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	m := &model.Metric{Type: "counter", Name: "metric1", Value: int64(10)}
+	suite.service.On("Metric", m.Type, m.Name).Once().Return(m, nil)
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal("10", string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerGetMetricNotFound() {
+	req, err := http.NewRequest(http.MethodGet, address+getCounterPath, nil)
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	suite.service.On("Metric", "counter", "metric1").Once().Return(nil, errors.New("not found"))
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusNotFound, res.StatusCode)
+	suite.Equal("metric not found\n", string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerGetAllOK() {
+	req, err := http.NewRequest(http.MethodGet, address+getAllPath, nil)
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	m1 := model.Metric{Type: "counter", Name: "metric1", Value: int64(10)}
+	m2 := model.Metric{Type: "gauge", Name: "metric1", Value: float64(1.23)}
+	m3 := model.Metric{Type: "gauge", Name: "metric2", Value: float64(1.24)}
+	d := model.Data(map[string]map[string]model.Metric{
+		"counter": {"metric1": m1},
+		"gauge":   {"metric1": m2, "metric2": m3},
+	})
+
+	suite.service.On("Metrics").Once().Return(d, nil)
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal(expectedHTML, string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerGetAllInternalServerError() {
+	req, err := http.NewRequest(http.MethodGet, address+getAllPath, nil)
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	suite.service.On("Metrics").Once().Return(nil, errors.New("internal server error"))
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal("internal server error\n", string(resBody))
+}
+
+var expectedHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Metrics</title>
+</head>
+<body>
+    <h1>Metrics</h1>
+    <ul>
+    
+        <li>metric1: 10</li>
+    
+        <li>metric1: 1.23</li>
+    
+        <li>metric2: 1.24</li>
+    
+    </ul>
+</body>
+</html>
+`

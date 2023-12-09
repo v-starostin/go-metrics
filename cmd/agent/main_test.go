@@ -22,7 +22,6 @@ func TestSendMetrics(t *testing.T) {
 		{Type: "gauge", Name: "metric1", Value: 12},
 		{Type: "counter", Name: "metric3", Value: 3},
 	}
-	httpServerAddress := "0.0.0.0:8080"
 	t.Run("good case", func(t *testing.T) {
 		{
 			req, err := http.NewRequest(http.MethodPost, "http://0.0.0.0:8080/update/gauge/metric1/12", nil)
@@ -43,7 +42,7 @@ func TestSendMetrics(t *testing.T) {
 			client.On("Do", req).Return(res, nil)
 		}
 
-		err := agent.SendMetrics(ctx, client, metrics, httpServerAddress)
+		err := agent.SendMetrics(ctx, client, metrics, "0.0.0.0:8080")
 		assert.NoError(t, err)
 	})
 }

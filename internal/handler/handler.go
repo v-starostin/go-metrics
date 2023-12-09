@@ -61,19 +61,21 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if mtype == "" || mname == "" {
 			metrics, err := h.service.Metrics()
 			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
 				return
 			}
 			fmt.Printf("metrics: %+v\n", metrics)
 
 			tmpl, err := template.New("metrics").Parse(model.HTMLTemplateString)
 			if err != nil {
-				return
+				return // ?
 			}
 			buf := bytes.Buffer{}
 			if err := tmpl.Execute(&buf, metrics); err != nil {
 				return
 			}
-			fmt.Printf("buf: %+v\n", buf.String())
+			w.WriteHeader(http.StatusOK)
 			w.Write(buf.Bytes())
 			return
 		}
@@ -90,7 +92,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(strconv.FormatFloat(mv, 'f', -1, 64)))
 		}
 		if mtype == service.TypeCounter {
-			w.Write([]byte(fmt.Sprintf("%d", metric.Value.(int64))))
+			mv := metric.Value.(int64)
+			w.Write([]byte(strconv.FormatInt(mv, 10)))
 		}
 		w.WriteHeader(http.StatusOK)
 
