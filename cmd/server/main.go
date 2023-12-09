@@ -1,20 +1,19 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/v-starostin/go-metrics/internal/config"
 	"github.com/v-starostin/go-metrics/internal/handler"
 	"github.com/v-starostin/go-metrics/internal/repository"
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
 func main() {
-	cfg := config.New()
+	parseFlags()
+	//cfg := config.New()
 	repo := repository.New()
 	srv := service.New(repo)
 	h := handler.New(srv)
@@ -27,8 +26,8 @@ func main() {
 		r.Method(http.MethodGet, "/", h)
 	})
 
-	log.Printf("Server is listerning on port :%d", cfg.Port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r)
+	log.Printf("Server is listerning on :%s", serverAddress)
+	err := http.ListenAndServe(serverAddress, r)
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}

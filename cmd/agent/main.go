@@ -14,12 +14,9 @@ import (
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
-var (
-	pollInterval   = 5 * time.Second
-	reportInterval = 10 * time.Second
-)
-
 func main() {
+	parseFlags()
+
 	client := &http.Client{
 		Timeout: time.Minute,
 	}
@@ -28,8 +25,8 @@ func main() {
 
 	var metrics []model.Metric
 	var counter int64
-	var poll = time.NewTicker(pollInterval)
-	var report = time.NewTicker(reportInterval)
+	var poll = time.NewTicker(time.Duration(pollInterval) * time.Second)
+	var report = time.NewTicker(time.Duration(reportInterval) * time.Second)
 
 loop:
 	for {
