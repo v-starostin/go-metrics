@@ -1,10 +1,10 @@
 package main
 
-import "flag"
+// import "flag"
 
-var serverAddress string
+// var serverAddress string
 
-func parseFlags() {
-	flag.StringVar(&serverAddress, "a", "localhost:8080", "address and port to run server")
-	flag.Parse()
-}
+// func parseFlags() {
+// 	flag.StringVar(&serverAddress, "a", "localhost:8080", "address and port to run server")
+// 	flag.Parse()
+// }

@@ -14,7 +14,7 @@ import (
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
-// Had to move it here from internal/agent since GHActions checks agent tests in cmd/agent
+// Had to move it here from internal/agent since GHActions checks expect agent tests in cmd/agent
 func TestSendMetrics(t *testing.T) {
 	var ctx = context.Background()
 	client := &mock.HTTPClient{}
