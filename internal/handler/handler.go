@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
@@ -99,7 +100,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if mtype == service.TypeGauge {
-			w.Write([]byte(fmt.Sprintf("%.3f", metric.Value.(float64))))
+			mv := metric.Value.(float64)
+			w.Write([]byte(strconv.FormatFloat(mv, 'f', -1, 10)))
 		}
 		if mtype == service.TypeCounter {
 			w.Write([]byte(fmt.Sprintf("%d", metric.Value.(int64))))
