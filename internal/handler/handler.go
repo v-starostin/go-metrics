@@ -101,7 +101,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if mtype == service.TypeGauge {
 			mv := metric.Value.(float64)
-			w.Write([]byte(strconv.FormatFloat(mv, 'f', -1, 10)))
+			w.Write([]byte(strconv.FormatFloat(mv, 'f', -1, 64)))
 		}
 		if mtype == service.TypeCounter {
 			w.Write([]byte(fmt.Sprintf("%d", metric.Value.(int64))))
