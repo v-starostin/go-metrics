@@ -16,8 +16,8 @@ type Config struct {
 func NewAgent() *Config {
 	srvAddr, reportInt, pollInt := ParseAgentFlags()
 
-	agentConfig := &Config{}
-	if err := env.Parse(agentConfig); err != nil {
+	agentConfig := Config{}
+	if err := env.Parse(&agentConfig); err != nil {
 		log.Fatal(err)
 	}
 
@@ -31,13 +31,13 @@ func NewAgent() *Config {
 		agentConfig.PollInterval = pollInt
 	}
 
-	return agentConfig
+	return &agentConfig
 }
 
 func NewServer() *Config {
 	srvAddr := ParseServerFlags()
 
-	config := &Config{}
+	config := Config{}
 	if err := env.Parse(&config); err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func NewServer() *Config {
 		config.ServerAddress = srvAddr
 	}
 
-	return config
+	return &config
 }
 
 func ParseAgentFlags() (string, int, int) {
