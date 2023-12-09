@@ -41,7 +41,7 @@ loop:
 		case <-report.C:
 			metrics = append(metrics, model.Metric{Type: "counter", Name: "PollCount", Value: counter})
 			fmt.Printf("sending: %+v\n\n", metrics)
-			if err := agent.SendMetrics(ctx, client, metrics); err != nil {
+			if err := agent.SendMetrics(ctx, client, metrics, httpServerAddress); err != nil {
 				log.Fatal(err)
 			}
 		case <-ctx.Done():
