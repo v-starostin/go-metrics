@@ -2,11 +2,13 @@ package repository
 
 import (
 	"log"
+	"sync"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
 type MemStorage struct {
+	mu   sync.RWMutex
 	data model.Data
 }
 
@@ -17,10 +19,15 @@ func New() *MemStorage {
 }
 
 func (s *MemStorage) LoadAll() model.Data {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.data
 }
 
 func (s *MemStorage) Load(mtype, mname string) *model.Metric {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	metrics, ok := s.data[mtype]
 	if !ok {
 		log.Printf("metric type %s doesn't exist", mtype)
@@ -37,6 +44,9 @@ func (s *MemStorage) Load(mtype, mname string) *model.Metric {
 }
 
 func (s *MemStorage) StoreCounter(mtype, mname string, mvalue int64) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	counter, ok := s.data[mtype]
 	if !ok {
 		s.data[mtype] = map[string]model.Metric{
@@ -61,6 +71,9 @@ func (s *MemStorage) StoreCounter(mtype, mname string, mvalue int64) bool {
 }
 
 func (s *MemStorage) StoreGauge(mtype, mname string, mvalue float64) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	gauge, ok := s.data[mtype]
 	if !ok {
 		s.data[mtype] = map[string]model.Metric{
