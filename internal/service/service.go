@@ -80,32 +80,4 @@ func (s *Service) Save(mtype, mname, mvalue string) error {
 	}
 
 	return nil
-
-	// if mtype == TypeCounter {
-	// 	log.Println("metrics type counter: parsing value string to int64")
-	// 	value, err := strconv.ParseInt(mvalue, 10, 0)
-	// 	if err != nil {
-	// 		return ErrParseMetric
-	// 	}
-
-	// 	log.Println("storing data to storage (counter)")
-	// 	if ok := s.repo.StoreCounter(mtype, mname, value); !ok {
-	// 		return ErrStoreData
-	// 	}
-	// 	return nil
-	// }
-
-	// if mtype == TypeGauge {
-	// 	log.Println("metrics type gauge: parsing value string to float64")
-	// 	value, err := strconv.ParseFloat(mvalue, 64)
-	// 	if err != nil {
-	// 		return ErrParseMetric
-	// 	}
-
-	// 	log.Println("storing data to storage (gauge)")
-	// 	if ok := s.repo.StoreGauge(mtype, mname, value); !ok {
-	// 		return ErrStoreData
-	// 	}
-	// 	return nil
-	// }
 }
