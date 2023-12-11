@@ -29,7 +29,7 @@ func main() {
 
 loop:
 	for {
-		log.Println("Agent is started")
+		log.Println("Starting gathering metrics")
 
 		select {
 		case <-poll.C:
@@ -50,4 +50,5 @@ loop:
 			break loop
 		}
 	}
+	log.Println("Finished gathering metrics")
 }

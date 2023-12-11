@@ -59,10 +59,7 @@ func (s *MemStorage) StoreCounter(mtype, mname string, mvalue int64) bool {
 		counter[mname] = model.Metric{Name: mname, Type: mtype, Value: mvalue}
 		return true
 	}
-	v, ok := val.Value.(int64)
-	if !ok {
-		return false
-	}
+	v := val.Value.(int64)
 	v += mvalue
 	counter[mname] = model.Metric{Name: mname, Type: mtype, Value: v}
 	log.Printf("storage content: %+v\n", s.data)
@@ -81,12 +78,6 @@ func (s *MemStorage) StoreGauge(mtype, mname string, mvalue float64) bool {
 		}
 		return true
 	}
-
-	// _, ok = gauge[mname]
-	// if !ok {
-	// 	gauge[mname] = model.Metric{Name: mname, Type: mtype, Value: mvalue}
-	// 	return true
-	// }
 
 	gauge[mname] = model.Metric{Name: mname, Type: mtype, Value: mvalue}
 	log.Printf("storage content: %+v\n", s.data)
