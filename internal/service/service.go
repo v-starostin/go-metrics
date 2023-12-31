@@ -35,7 +35,7 @@ func New(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Metric(mtype, mname string) (*model.Metric, error) {
+func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
 	m := s.repo.Load(mtype, mname)
 	if m == nil {
 		return nil, fmt.Errorf("failed to load metric %s", mname)
@@ -44,7 +44,7 @@ func (s *Service) Metric(mtype, mname string) (*model.Metric, error) {
 	return m, nil
 }
 
-func (s *Service) Metrics() (model.Data, error) {
+func (s *Service) GetMetrics() (model.Data, error) {
 	m := s.repo.LoadAll()
 	if m == nil {
 		return nil, errors.New("failed to load metrics")
@@ -53,7 +53,7 @@ func (s *Service) Metrics() (model.Data, error) {
 	return m, nil
 }
 
-func (s *Service) Save(mtype, mname, mvalue string) error {
+func (s *Service) SaveMetric(mtype, mname, mvalue string) error {
 	switch mtype {
 	case TypeCounter:
 		log.Println("metrics type counter: parsing value string to int64")

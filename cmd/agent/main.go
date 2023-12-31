@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -16,7 +15,8 @@ import (
 )
 
 func main() {
-	var metrics []model.Metric
+	metrics := make([]model.Metric, len(model.GaugeMetrics)+2)
+	//var metrics []model.Metric
 	counter := int64(0)
 	cfg := config.NewAgent()
 	poll := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
@@ -27,19 +27,18 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
+	log.Printf("Started gathering metrics with pollInterval: %v, reportInterval: %v", cfg.PollInterval, cfg.ReportInterval)
 loop:
 	for {
-		log.Println("Starting gathering metrics")
-
 		select {
 		case <-poll.C:
-			metrics = agent.CollectMetrics()
-			counter++
-			metrics = append(metrics, model.Metric{Type: "gauge", Name: "RandomValue", Value: rand.Float64()})
-			log.Printf("collecting: %+v\n\n", metrics)
+			agent.CollectMetrics(metrics, &counter)
+			//counter++
+			//metrics = append(metrics, model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()})
+			log.Printf("\ncollecting: %+v\n\n", metrics)
 		case <-report.C:
-			metrics = append(metrics, model.Metric{Type: "counter", Name: "PollCount", Value: counter})
-			fmt.Printf("sending: %+v\n\n", metrics)
+			//metrics = append(metrics, model.Metric{Type: service.TypeCounter, Name: "PollCount", Value: counter})
+			fmt.Printf("\nsending: %+v\n\n", metrics)
 			if err := agent.SendMetrics(ctx, client, metrics, cfg.ServerAddress); err != nil {
 				log.Fatal(err)
 			}

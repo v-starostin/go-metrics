@@ -12,12 +12,12 @@ type Service struct {
 	mock.Mock
 }
 
-// Metric provides a mock function with given fields: mtype, mname
-func (_m *Service) Metric(mtype string, mname string) (*model.Metric, error) {
+// GetMetric provides a mock function with given fields: mtype, mname
+func (_m *Service) GetMetric(mtype string, mname string) (*model.Metric, error) {
 	ret := _m.Called(mtype, mname)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Metric")
+		panic("no return value specified for GetMetric")
 	}
 
 	var r0 *model.Metric
@@ -42,12 +42,12 @@ func (_m *Service) Metric(mtype string, mname string) (*model.Metric, error) {
 	return r0, r1
 }
 
-// Metrics provides a mock function with given fields:
-func (_m *Service) Metrics() (model.Data, error) {
+// GetMetrics provides a mock function with given fields:
+func (_m *Service) GetMetrics() (model.Data, error) {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for Metrics")
+		panic("no return value specified for GetMetrics")
 	}
 
 	var r0 model.Data
@@ -72,12 +72,12 @@ func (_m *Service) Metrics() (model.Data, error) {
 	return r0, r1
 }
 
-// Save provides a mock function with given fields: mtype, mname, mvalue
-func (_m *Service) Save(mtype string, mname string, mvalue string) error {
+// SaveMetric provides a mock function with given fields: mtype, mname, mvalue
+func (_m *Service) SaveMetric(mtype string, mname string, mvalue string) error {
 	ret := _m.Called(mtype, mname, mvalue)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Save")
+		panic("no return value specified for SaveMetric")
 	}
 
 	var r0 error

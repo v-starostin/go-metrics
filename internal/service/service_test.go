@@ -17,9 +17,9 @@ type serviceTestSuite struct {
 
 func (suite *serviceTestSuite) SetupTest() {
 	repo := &mock.Repository{}
-	service := service.New(repo)
+	srv := service.New(repo)
 	suite.repo = repo
-	suite.service = service
+	suite.service = srv
 }
 
 func TestService(t *testing.T) {
@@ -50,7 +50,7 @@ func (suite *serviceTestSuite) TestMetric() {
 		suite.Run(test.name, func() {
 			suite.repo.On("Load", test.metric.Type, test.metric.Name).Once().Return(test.expected)
 
-			got, err := suite.service.Metric(test.metric.Type, test.metric.Name)
+			got, err := suite.service.GetMetric(test.metric.Type, test.metric.Name)
 			if err != nil {
 				suite.EqualError(err, test.expectedErr)
 			} else {
@@ -89,7 +89,7 @@ func (suite *serviceTestSuite) TestMetrics() {
 		suite.Run(test.name, func() {
 			suite.repo.On("LoadAll").Once().Return(test.expected)
 
-			got, err := suite.service.Metrics()
+			got, err := suite.service.GetMetrics()
 			if err != nil {
 				suite.EqualError(err, test.expectedErr)
 			} else {
@@ -163,7 +163,7 @@ func (suite *serviceTestSuite) TestServiceSave() {
 			if test.mtype == service.TypeCounter {
 				suite.repo.On("StoreCounter", test.mtype, test.mname, int64(2)).Once().Return(test.saved)
 			}
-			err := suite.service.Save(test.mtype, test.mname, test.mvalue)
+			err := suite.service.SaveMetric(test.mtype, test.mname, test.mvalue)
 			suite.Equal(test.expected, err)
 		})
 	}

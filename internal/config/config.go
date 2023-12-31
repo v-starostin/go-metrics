@@ -14,7 +14,7 @@ type Config struct {
 }
 
 func NewAgent() *Config {
-	srvAddr, reportInt, pollInt := ParseAgentFlags()
+	srvAddr, reportInt, pollInt := parseAgentFlags()
 
 	config := Config{}
 	if err := env.Parse(&config); err != nil {
@@ -35,7 +35,7 @@ func NewAgent() *Config {
 }
 
 func NewServer() *Config {
-	srvAddr := ParseServerFlags()
+	srvAddr := parseServerFlags()
 
 	config := Config{}
 	if err := env.Parse(&config); err != nil {
@@ -49,7 +49,7 @@ func NewServer() *Config {
 	return &config
 }
 
-func ParseAgentFlags() (string, int, int) {
+func parseAgentFlags() (string, int, int) {
 	serverAddress := flag.String("a", "localhost:8080", "HTTP server endpoint address")
 	reportInterval := flag.Int("r", 10, "report interval to the server (in seconds)")
 	pollInterval := flag.Int("p", 2, "interval to gather metrics (in seconds)")
@@ -58,7 +58,7 @@ func ParseAgentFlags() (string, int, int) {
 	return *serverAddress, *reportInterval, *pollInterval
 }
 
-func ParseServerFlags() string {
+func parseServerFlags() string {
 	serverAddress := flag.String("a", "localhost:8080", "address and port to run server")
 	flag.Parse()
 

@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"reflect"
 	"runtime"
 	"sync"
 
 	"github.com/v-starostin/go-metrics/internal/model"
+	"github.com/v-starostin/go-metrics/internal/service"
 )
 
 type HTTPClient interface {
@@ -46,23 +48,26 @@ func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric,
 	return nil
 }
 
-func CollectMetrics() []model.Metric {
-	var metrics []model.Metric
+func CollectMetrics(metrics []model.Metric, counter *int64) {
+	//var metrics []model.Metric
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
 	msvalue := reflect.ValueOf(memStats)
 	mstype := msvalue.Type()
 
-	for _, metric := range model.GaugeMetrics {
+	for index, metric := range model.GaugeMetrics {
 		field, ok := mstype.FieldByName(metric)
 		if !ok {
 			continue
 		}
 		value := msvalue.FieldByName(metric)
-		metrics = append(metrics, model.Metric{Type: "gauge", Name: field.Name, Value: value})
+		metrics[index] = model.Metric{Type: service.TypeGauge, Name: field.Name, Value: value}
+		//metrics = append(metrics, model.Metric{Type: service.TypeGauge, Name: field.Name, Value: value})
 	}
-	fmt.Printf("metrics: %+v\n", metrics)
-
-	return metrics
+	metrics[len(model.GaugeMetrics)] = model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()}
+	//metrics = append(metrics, model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()})
+	*counter++
+	metrics[len(model.GaugeMetrics)+1] = model.Metric{Type: service.TypeCounter, Name: "PollCount", Value: *counter}
+	fmt.Printf("\n(collect) metrics: %+v\n", metrics)
 }
