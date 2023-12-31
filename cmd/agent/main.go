@@ -16,7 +16,6 @@ import (
 
 func main() {
 	metrics := make([]model.Metric, len(model.GaugeMetrics)+2)
-	//var metrics []model.Metric
 	counter := int64(0)
 	cfg := config.NewAgent()
 	poll := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
@@ -33,11 +32,8 @@ loop:
 		select {
 		case <-poll.C:
 			agent.CollectMetrics(metrics, &counter)
-			//counter++
-			//metrics = append(metrics, model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()})
 			log.Printf("\ncollecting: %+v\n\n", metrics)
 		case <-report.C:
-			//metrics = append(metrics, model.Metric{Type: service.TypeCounter, Name: "PollCount", Value: counter})
 			fmt.Printf("\nsending: %+v\n\n", metrics)
 			if err := agent.SendMetrics(ctx, client, metrics, cfg.ServerAddress); err != nil {
 				log.Fatal(err)

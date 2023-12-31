@@ -49,10 +49,9 @@ func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric,
 }
 
 func CollectMetrics(metrics []model.Metric, counter *int64) {
-	//var metrics []model.Metric
+	*counter++
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-
 	msvalue := reflect.ValueOf(memStats)
 	mstype := msvalue.Type()
 
@@ -63,11 +62,7 @@ func CollectMetrics(metrics []model.Metric, counter *int64) {
 		}
 		value := msvalue.FieldByName(metric)
 		metrics[index] = model.Metric{Type: service.TypeGauge, Name: field.Name, Value: value}
-		//metrics = append(metrics, model.Metric{Type: service.TypeGauge, Name: field.Name, Value: value})
 	}
 	metrics[len(model.GaugeMetrics)] = model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()}
-	//metrics = append(metrics, model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()})
-	*counter++
 	metrics[len(model.GaugeMetrics)+1] = model.Metric{Type: service.TypeCounter, Name: "PollCount", Value: *counter}
-	fmt.Printf("\n(collect) metrics: %+v\n", metrics)
 }
