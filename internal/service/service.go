@@ -58,11 +58,14 @@ func (s *Service) GetMetrics() (model.Data, error) {
 }
 
 func (s *Service) SaveMetric(mtype, mname, mvalue string) error {
-	logger := s.logger.With().Str("metric type", mtype).Logger()
+	logger := s.logger.With().
+		Str("type", mtype).
+		Str("name", mname).
+		Str("value", mvalue).
+		Logger()
 
 	switch mtype {
 	case TypeCounter:
-		logger.Info().Msg("Parsing value string to int64")
 		value, err := strconv.ParseInt(mvalue, 10, 0)
 		if err != nil {
 			return ErrParseMetric
@@ -73,7 +76,6 @@ func (s *Service) SaveMetric(mtype, mname, mvalue string) error {
 		}
 		logger.Info().Msg("Metric is stored")
 	case TypeGauge:
-		logger.Info().Msg("Parsing value string to float64")
 		value, err := strconv.ParseFloat(mvalue, 64)
 		if err != nil {
 			return ErrParseMetric

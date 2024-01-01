@@ -79,7 +79,7 @@ func getMetrics(mtype, mname string, w http.ResponseWriter, h Handler) {
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
-		h.logger.Info().Msgf("Recieved metrics from storage: %+v", metrics)
+		h.logger.Info().Msgf("Recieved metrics from storage: %+v\n", metrics)
 
 		tmpl, err := template.New("metrics").Parse(model.HTMLTemplateString)
 		if err != nil {
