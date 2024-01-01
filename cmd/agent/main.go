@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/config"
@@ -15,6 +16,8 @@ import (
 )
 
 func main() {
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
 	metrics := make([]model.Metric, len(model.GaugeMetrics)+2)
 	counter := int64(0)
 	cfg := config.NewAgent()
@@ -26,24 +29,28 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	log.Printf("Started gathering metrics with pollInterval: %v, reportInterval: %v", cfg.PollInterval, cfg.ReportInterval)
+	logger.Info().
+		Int("pollInterval", cfg.PollInterval).
+		Int("reportInterval", cfg.ReportInterval).
+		Msg("Started collecting metrics")
+
 loop:
 	for {
 		select {
 		case <-poll.C:
 			agent.CollectMetrics(metrics, &counter)
-			log.Printf("\ncollecting: %+v\n\n", metrics)
+			logger.Info().Interface("metrics", metrics).Msg("Metrics collected")
 		case <-report.C:
-			fmt.Printf("\nsending: %+v\n\n", metrics)
 			if err := agent.SendMetrics(ctx, client, metrics, cfg.ServerAddress); err != nil {
-				log.Fatal(err)
+				logger.Fatal().Err(err).Msg("Send metrics error")
 			}
+			logger.Info().Interface("metrics", metrics).Msg("Metrics sent")
 		case <-ctx.Done():
-			log.Println(ctx.Err())
+			logger.Info().Err(ctx.Err()).Send()
 			poll.Stop()
 			report.Stop()
 			break loop
 		}
 	}
-	log.Println("Finished gathering metrics")
+	logger.Info().Msg("Finished collecting metrics")
 }

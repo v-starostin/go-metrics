@@ -9,17 +9,20 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
 type Handler struct {
+	logger  *zerolog.Logger
 	service Service
 }
 
-func New(s Service) *Handler {
+func New(l *zerolog.Logger, s Service) *Handler {
 	return &Handler{
+		logger:  l,
 		service: s,
 	}
 }
@@ -64,7 +67,8 @@ func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue)))
-	fmt.Printf("\nmetric %s of type %s with value %v has been set successfully\n", mname, mtype, mvalue)
+
+	h.logger.Info().Msgf("Metric %s of type %s with value %v has been saved successfully", mname, mtype, mvalue)
 }
 
 func getMetrics(mtype, mname string, w http.ResponseWriter, h Handler) {
@@ -75,7 +79,7 @@ func getMetrics(mtype, mname string, w http.ResponseWriter, h Handler) {
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
-		fmt.Printf("metrics: %+v\n", metrics)
+		h.logger.Info().Msgf("Recieved metrics from storage: %+v", metrics)
 
 		tmpl, err := template.New("metrics").Parse(model.HTMLTemplateString)
 		if err != nil {
@@ -100,14 +104,16 @@ func getMetrics(mtype, mname string, w http.ResponseWriter, h Handler) {
 		http.Error(w, "metric not found", http.StatusNotFound)
 		return
 	}
+	h.logger.Info().Msgf("Recieved metric from storage: %+v", metric)
 
 	switch mtype {
 	case service.TypeGauge:
 		mv := metric.Value.(float64)
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(strconv.FormatFloat(mv, 'f', -1, 64)))
 	case service.TypeCounter:
 		mv := metric.Value.(int64)
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(strconv.FormatInt(mv, 10)))
 	}
-	w.WriteHeader(http.StatusOK)
 }

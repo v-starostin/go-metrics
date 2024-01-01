@@ -1,10 +1,12 @@
 package main
 
 import (
-	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/config"
 	"github.com/v-starostin/go-metrics/internal/handler"
@@ -13,21 +15,25 @@ import (
 )
 
 func main() {
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
 	cfg := config.NewServer()
 	repo := repository.New()
-	srv := service.New(repo)
-	h := handler.New(srv)
+	srv := service.New(&logger, repo)
+	h := handler.New(&logger, srv)
 
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
+		r.Use(middleware.Logger)
+		r.Use(middleware.Recoverer)
 		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", h)
 		r.Method(http.MethodGet, "/value/{type}/{name}", h)
 		r.Method(http.MethodGet, "/", h)
 	})
 
-	log.Printf("Server is listerning on %s", cfg.ServerAddress)
+	logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
 	err := http.ListenAndServe(cfg.ServerAddress, r)
 	if err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Msg("Server error")
 	}
 }
