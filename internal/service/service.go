@@ -2,10 +2,10 @@ package service
 
 import (
 	"fmt"
-	"github.com/rs/zerolog"
 	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 )

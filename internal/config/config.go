@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"log"
 
 	"github.com/caarlos0/env/v6"
 )
@@ -13,12 +12,12 @@ type Config struct {
 	PollInterval   int    `env:"POLL_INTERVAL"`
 }
 
-func NewAgent() *Config {
+func NewAgent() (*Config, error) {
 	srvAddr, reportInt, pollInt := parseAgentFlags()
 
 	config := Config{}
 	if err := env.Parse(&config); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	if config.ServerAddress == "" {
@@ -31,22 +30,22 @@ func NewAgent() *Config {
 		config.PollInterval = pollInt
 	}
 
-	return &config
+	return &config, nil
 }
 
-func NewServer() *Config {
+func NewServer() (*Config, error) {
 	srvAddr := parseServerFlags()
 
 	config := Config{}
 	if err := env.Parse(&config); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	if config.ServerAddress == "" {
 		config.ServerAddress = srvAddr
 	}
 
-	return &config
+	return &config, nil
 }
 
 func parseAgentFlags() (string, int, int) {

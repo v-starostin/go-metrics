@@ -1,20 +1,23 @@
 package repository
 
 import (
-	"log"
 	"sync"
+
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
 type MemStorage struct {
-	mu   sync.RWMutex
-	data model.Data
+	mu     sync.RWMutex
+	logger *zerolog.Logger
+	data   model.Data
 }
 
-func New() *MemStorage {
+func New(l *zerolog.Logger) *MemStorage {
 	return &MemStorage{
-		data: make(model.Data),
+		logger: l,
+		data:   make(model.Data),
 	}
 }
 
@@ -30,13 +33,13 @@ func (s *MemStorage) Load(mtype, mname string) *model.Metric {
 
 	metrics, ok := s.data[mtype]
 	if !ok {
-		log.Printf("metric type %s doesn't exist", mtype)
+		s.logger.Info().Msgf("Metric type %s doesn't exist", mtype)
 		return nil
 	}
 
 	mvalue, ok := metrics[mname]
 	if !ok {
-		log.Printf("metric %s doesn't exist", mvalue)
+		s.logger.Info().Msgf("Metric %s doesn't exist", mvalue)
 		return nil
 	}
 
@@ -62,7 +65,7 @@ func (s *MemStorage) StoreCounter(mtype, mname string, mvalue int64) bool {
 	v := val.Value.(int64)
 	v += mvalue
 	counter[mname] = model.Metric{Name: mname, Type: mtype, Value: v}
-	log.Printf("storage content: %+v\n", s.data)
+	s.logger.Info().Interface("Storage content", s.data).Send()
 
 	return true
 }
@@ -80,7 +83,7 @@ func (s *MemStorage) StoreGauge(mtype, mname string, mvalue float64) bool {
 	}
 
 	gauge[mname] = model.Metric{Name: mname, Type: mtype, Value: mvalue}
-	log.Printf("storage content: %+v\n", s.data)
+	s.logger.Info().Interface("Storage content", s.data).Send()
 
 	return true
 }

@@ -17,8 +17,11 @@ import (
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	cfg := config.NewServer()
-	repo := repository.New()
+	cfg, err := config.NewServer()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Configuration error")
+	}
+	repo := repository.New(&logger)
 	srv := service.New(&logger, repo)
 	h := handler.New(&logger, srv)
 
@@ -32,7 +35,7 @@ func main() {
 	})
 
 	logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
-	err := http.ListenAndServe(cfg.ServerAddress, r)
+	err = http.ListenAndServe(cfg.ServerAddress, r)
 	if err != nil && err != http.ErrServerClosed {
 		logger.Fatal().Err(err).Msg("Server error")
 	}

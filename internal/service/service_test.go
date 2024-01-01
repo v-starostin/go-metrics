@@ -17,7 +17,7 @@ type serviceTestSuite struct {
 
 func (suite *serviceTestSuite) SetupTest() {
 	repo := &mock.Repository{}
-	srv := service.New(repo)
+	srv := service.New(nil, repo)
 	suite.repo = repo
 	suite.service = srv
 }

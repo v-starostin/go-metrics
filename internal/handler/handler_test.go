@@ -33,7 +33,7 @@ type handlerTestSuite struct {
 
 func (suite *handlerTestSuite) SetupTest() {
 	srv := &mock.Service{}
-	h := handler.New(srv)
+	h := handler.New(nil, srv)
 	r := chi.NewRouter()
 	r.Get("/", h.ServeHTTP)
 	r.Get("/value/{type}/{name}", h.ServeHTTP)

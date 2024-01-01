@@ -3,12 +3,13 @@ package agent
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"reflect"
 	"runtime"
 	"sync"
+
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -18,7 +19,7 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric, address string) error {
+func SendMetrics(ctx context.Context, l *zerolog.Logger, client HTTPClient, metrics []model.Metric, address string) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(metrics))
 
@@ -30,13 +31,13 @@ func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric,
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/%s/%s/%v", address, m.Type, m.Name, m.Value), nil)
 			if err != nil {
-				log.Println(err)
+				l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
 			}
 			req.Header.Add("Content-Type", "text/plain")
 			res, err := client.Do(req)
 			if err != nil {
-				log.Println(err)
+				l.Error().Err(err).Msg("Do method error")
 				return
 			}
 			res.Body.Close()

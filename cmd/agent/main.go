@@ -20,7 +20,10 @@ func main() {
 
 	metrics := make([]model.Metric, len(model.GaugeMetrics)+2)
 	counter := int64(0)
-	cfg := config.NewAgent()
+	cfg, err := config.NewAgent()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Configuration error")
+	}
 	poll := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
 	report := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 	client := &http.Client{
@@ -41,7 +44,7 @@ loop:
 			agent.CollectMetrics(metrics, &counter)
 			logger.Info().Interface("metrics", metrics).Msg("Metrics collected")
 		case <-report.C:
-			if err := agent.SendMetrics(ctx, client, metrics, cfg.ServerAddress); err != nil {
+			if err := agent.SendMetrics(ctx, &logger, client, metrics, cfg.ServerAddress); err != nil {
 				logger.Fatal().Err(err).Msg("Send metrics error")
 			}
 			logger.Info().Interface("metrics", metrics).Msg("Metrics sent")
