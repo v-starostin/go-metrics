@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/v-starostin/go-metrics/internal/agent"
@@ -42,7 +43,7 @@ func TestSendMetrics(t *testing.T) {
 			client.On("Do", req).Return(res, nil)
 		}
 
-		err := agent.SendMetrics(ctx, client, metrics, "0.0.0.0:8080")
+		err := agent.SendMetrics(ctx, &zerolog.Logger{}, client, metrics, "0.0.0.0:8080")
 		assert.NoError(t, err)
 	})
 }

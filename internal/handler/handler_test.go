@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/v-starostin/go-metrics/internal/handler"
@@ -33,7 +34,7 @@ type handlerTestSuite struct {
 
 func (suite *handlerTestSuite) SetupTest() {
 	srv := &mock.Service{}
-	h := handler.New(nil, srv)
+	h := handler.New(&zerolog.Logger{}, srv)
 	r := chi.NewRouter()
 	r.Get("/", h.ServeHTTP)
 	r.Get("/value/{type}/{name}", h.ServeHTTP)

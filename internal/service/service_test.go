@@ -3,7 +3,9 @@ package service_test
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
+
 	"github.com/v-starostin/go-metrics/internal/mock"
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -17,7 +19,7 @@ type serviceTestSuite struct {
 
 func (suite *serviceTestSuite) SetupTest() {
 	repo := &mock.Repository{}
-	srv := service.New(nil, repo)
+	srv := service.New(&zerolog.Logger{}, repo)
 	suite.repo = repo
 	suite.service = srv
 }
