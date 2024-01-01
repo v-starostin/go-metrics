@@ -67,8 +67,6 @@ func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue)))
-
-	h.logger.Info().Msgf("Metric %s of type %s with value %v has been saved successfully", mname, mtype, mvalue)
 }
 
 func getMetrics(mtype, mname string, w http.ResponseWriter, h Handler) {

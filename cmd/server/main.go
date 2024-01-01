@@ -27,7 +27,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
-		r.Use(middleware.Logger)
+		r.Use(middleware.RequestLogger(&handler.LogFormatter{Logger: &logger}))
 		r.Use(middleware.Recoverer)
 		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", h)
 		r.Method(http.MethodGet, "/value/{type}/{name}", h)
