@@ -41,5 +41,4 @@ func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeResponse(w, http.StatusOK, buf.Bytes())
-	return
 }

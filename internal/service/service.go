@@ -24,9 +24,6 @@ type Service struct {
 }
 
 type Repository interface {
-	//StoreCounter(mtype, mname string, mvalue int64) bool
-	//StoreGauge(mtype, mname string, mvalue float64) bool
-
 	Load(mtype, mname string) *model.Metric
 	LoadAll() model.Data
 	Store(m model.Metric) bool
