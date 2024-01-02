@@ -66,7 +66,7 @@ func (suite *handlerTestSuite) TestHandlerServiceOK() {
 	suite.NoError(err)
 
 	suite.Equal(http.StatusOK, res.StatusCode)
-	suite.Equal("metric metric1 of type gauge with value 1.23 has been set successfully", string(resBody))
+	suite.Equal(`"metric metric1 of type gauge with value 1.23 has been set successfully"`, string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
@@ -86,7 +86,7 @@ func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
 	suite.NoError(err)
 
 	suite.Equal(http.StatusBadRequest, res.StatusCode)
-	suite.Equal("bad request\n", string(resBody))
+	suite.Equal(`{"error":"Bad request"}`, string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerServiceError() {
@@ -107,7 +107,7 @@ func (suite *handlerTestSuite) TestHandlerServiceError() {
 	suite.NoError(err)
 
 	suite.Equal(http.StatusInternalServerError, res.StatusCode)
-	suite.Equal("internal server error\n", string(resBody))
+	suite.Equal(`{"error":"Internal server error"}`, string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerWrongMetricType() {
@@ -123,7 +123,7 @@ func (suite *handlerTestSuite) TestHandlerWrongMetricType() {
 	suite.NoError(err)
 
 	suite.Equal(http.StatusBadRequest, res.StatusCode)
-	suite.Equal("bad request\n", string(resBody))
+	suite.Equal(`{"error":"Bad request"}`, string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerGetGaugeOK() {
@@ -184,7 +184,7 @@ func (suite *handlerTestSuite) TestHandlerGetMetricNotFound() {
 	suite.NoError(err)
 
 	suite.Equal(http.StatusNotFound, res.StatusCode)
-	suite.Equal("metric not found\n", string(resBody))
+	suite.Equal(`{"error":"Not found"}`, string(resBody))
 }
 
 //func (suite *handlerTestSuite) TestHandlerGetAllOK() {
@@ -231,7 +231,7 @@ func (suite *handlerTestSuite) TestHandlerGetAllInternalServerError() {
 	suite.NoError(err)
 
 	suite.Equal(http.StatusInternalServerError, res.StatusCode)
-	suite.Equal("internal server error\n", string(resBody))
+	suite.Equal(`{"error":"Internal server error"}`, string(resBody))
 }
 
 var expectedHTML = `
