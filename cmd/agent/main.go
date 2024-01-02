@@ -18,7 +18,7 @@ import (
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	metrics := make([]model.Metric, len(model.GaugeMetrics)+2)
+	metrics := make([]model.AgentMetric, len(model.GaugeMetrics)+2)
 	counter := int64(0)
 	cfg, err := config.NewAgent()
 	if err != nil {

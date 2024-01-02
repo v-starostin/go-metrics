@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 	"html/template"
 	"net/http"
 	"strconv"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -28,7 +27,9 @@ func New(l *zerolog.Logger, s Service) *Handler {
 }
 
 type Service interface {
-	SaveMetric(mtype, mname, mvalue string) error
+	//SaveMetric(mtype, mname, mvalue string) error
+
+	SaveMetric(m model.Metric) error
 	GetMetric(mtype, mname string) (*model.Metric, error)
 	GetMetrics() (model.Data, error)
 }
@@ -53,7 +54,34 @@ func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 		return
 	}
 
-	if err := h.service.SaveMetric(mtype, mname, mvalue); err != nil {
+	var m model.Metric
+	switch mtype {
+	case service.TypeCounter:
+		value, err := strconv.ParseInt(mvalue, 10, 0)
+		if err != nil {
+			//return service.ErrParseMetric
+			return
+		}
+		m = model.Metric{
+			ID:    mname,
+			MType: mtype,
+			Delta: &value,
+		}
+
+	case service.TypeGauge:
+		value, err := strconv.ParseFloat(mvalue, 64)
+		if err != nil {
+			//return service.ErrParseMetric
+			return
+		}
+		m = model.Metric{
+			ID:    mname,
+			MType: mtype,
+			Value: &value,
+		}
+	}
+
+	if err := h.service.SaveMetric(m); err != nil {
 		if errors.Is(err, service.ErrParseMetric) {
 			w.WriteHeader(http.StatusBadRequest)
 			http.Error(w, "bad request", http.StatusBadRequest)
@@ -106,12 +134,10 @@ func getMetrics(mtype, mname string, w http.ResponseWriter, h Handler) {
 
 	switch mtype {
 	case service.TypeGauge:
-		mv := metric.Value.(float64)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.FormatFloat(mv, 'f', -1, 64)))
+		w.Write([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
 	case service.TypeCounter:
-		mv := metric.Value.(int64)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.FormatInt(mv, 10)))
+		w.Write([]byte(strconv.FormatInt(*metric.Delta, 10)))
 	}
 }

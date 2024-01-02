@@ -29,6 +29,8 @@ func TestService(t *testing.T) {
 }
 
 func (suite *serviceTestSuite) TestMetric() {
+	f := new(float64)
+	*f = 1.23
 
 	tt := []struct {
 		name        string
@@ -38,21 +40,21 @@ func (suite *serviceTestSuite) TestMetric() {
 	}{
 		{
 			name:     "good case",
-			metric:   &model.Metric{Type: "gauge", Name: "metric2", Value: float64(1.23)},
-			expected: &model.Metric{Type: "gauge", Name: "metric2", Value: float64(1.23)},
+			metric:   &model.Metric{MType: "gauge", ID: "metric2", Value: f},
+			expected: &model.Metric{MType: "gauge", ID: "metric2", Value: f},
 		},
 		{
 			name:        "bad case",
-			metric:      &model.Metric{Type: "gauge", Name: "metric1", Value: float64(1.23)},
+			metric:      &model.Metric{MType: "gauge", ID: "metric1", Value: f},
 			expectedErr: "failed to load metric metric1",
 		},
 	}
 
 	for _, test := range tt {
 		suite.Run(test.name, func() {
-			suite.repo.On("Load", test.metric.Type, test.metric.Name).Once().Return(test.expected)
+			suite.repo.On("Load", test.metric.MType, test.metric.ID).Once().Return(test.expected)
 
-			got, err := suite.service.GetMetric(test.metric.Type, test.metric.Name)
+			got, err := suite.service.GetMetric(test.metric.MType, test.metric.ID)
 			if err != nil {
 				suite.EqualError(err, test.expectedErr)
 			} else {
@@ -63,9 +65,11 @@ func (suite *serviceTestSuite) TestMetric() {
 }
 
 func (suite *serviceTestSuite) TestMetrics() {
-	m1 := model.Metric{Type: "counter", Name: "metric1", Value: int64(10)}
-	m2 := model.Metric{Type: "gauge", Name: "metric1", Value: float64(1.23)}
-	m3 := model.Metric{Type: "gauge", Name: "metric2", Value: float64(1.24)}
+	f1, f2, i := new(float64), new(float64), new(int64)
+	*f1, *f2, *i = 1.23, 1.24, 10
+	m1 := model.Metric{MType: "counter", ID: "metric1", Delta: i}
+	m2 := model.Metric{MType: "gauge", ID: "metric1", Value: f1}
+	m3 := model.Metric{MType: "gauge", ID: "metric2", Value: f2}
 
 	data := model.Data(map[string]map[string]model.Metric{
 		"counter": {"metric1": m1},
@@ -102,70 +106,61 @@ func (suite *serviceTestSuite) TestMetrics() {
 }
 
 func (suite *serviceTestSuite) TestServiceSave() {
+	f1, i := new(float64), new(int64)
+	*f1, *i = 2.0, 2
 	tt := []struct {
-		name, mtype, mname, mvalue string
-		expected                   error
-		saved                      bool
+		name     string
+		m        model.Metric
+		expected error
+		saved    bool
 	}{
 		{
-			name:     "good case (gauge)",
-			mtype:    service.TypeGauge,
-			mname:    "metric1",
-			mvalue:   "2.0",
+			name: "good case (gauge)",
+			m: model.Metric{
+				MType: service.TypeGauge,
+				ID:    "metric1",
+				Value: f1,
+			},
 			saved:    true,
 			expected: nil,
 		},
 		{
-			name:     "good case (counter)",
-			mtype:    service.TypeCounter,
-			mname:    "metric1",
-			mvalue:   "2",
+			name: "good case (counter)",
+			m: model.Metric{
+				MType: service.TypeCounter,
+				ID:    "metric1",
+				Delta: i,
+			},
 			expected: nil,
 			saved:    true,
 		},
 		{
-			name:     "failed to parse float64",
-			mtype:    service.TypeGauge,
-			mname:    "metric1",
-			mvalue:   "2,0",
-			saved:    false,
-			expected: service.ErrParseMetric,
-		},
-		{
-			name:     "failed to parse int64",
-			mtype:    service.TypeCounter,
-			mname:    "metric1",
-			mvalue:   "2,0",
-			expected: service.ErrParseMetric,
-		},
-
-		{
-			name:     "failed to store data (counter)",
-			mtype:    service.TypeCounter,
-			mname:    "metric1",
-			mvalue:   "2",
+			name: "failed to store data (counter)",
+			m: model.Metric{
+				MType: service.TypeCounter,
+				ID:    "metric1",
+				Delta: i,
+			},
 			saved:    false,
 			expected: service.ErrStoreData,
 		},
 		{
-			name:     "failed to store data (gauge)",
-			mtype:    service.TypeGauge,
-			mname:    "metric1",
-			mvalue:   "2.0",
+			name: "failed to store data (gauge)",
+			m: model.Metric{
+				MType: service.TypeGauge,
+				ID:    "metric1",
+				Value: f1,
+			},
 			saved:    false,
 			expected: service.ErrStoreData,
 		},
 	}
 
 	for _, test := range tt {
-		suite.Run(test.mname, func() {
-			if test.mtype == service.TypeGauge {
-				suite.repo.On("StoreGauge", test.mtype, test.mname, float64(2)).Once().Return(test.saved)
-			}
-			if test.mtype == service.TypeCounter {
-				suite.repo.On("StoreCounter", test.mtype, test.mname, int64(2)).Once().Return(test.saved)
-			}
-			err := suite.service.SaveMetric(test.mtype, test.mname, test.mvalue)
+		suite.Run(test.name, func() {
+			suite.repo.On("Store", test.m).Once().Return(test.saved)
+
+			err := suite.service.SaveMetric(test.m)
 			suite.Equal(test.expected, err)
 		})
 	}

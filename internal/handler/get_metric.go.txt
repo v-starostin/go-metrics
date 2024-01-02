@@ -1,0 +1,34 @@
+package handler
+
+import (
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
+	"net/http"
+)
+
+type GetMetric struct {
+	logger  *zerolog.Logger
+	service Service
+}
+
+func NewGetMetric(l *zerolog.Logger, srv Service) *GetMetric {
+	return &GetMetric{
+		logger:  l,
+		service: srv,
+	}
+}
+
+func (h *GetMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	mtype := chi.URLParam(r, "type")
+	mname := chi.URLParam(r, "name")
+	//mvalue := chi.URLParam(r, "value")
+
+	metric, err := h.service.GetMetric2(mtype, mname)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		http.Error(w, "metric not found", http.StatusNotFound)
+		return
+	}
+	h.logger.Info().Msgf("Recieved metric from storage: %+v", metric)
+
+}

@@ -19,7 +19,7 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func SendMetrics(ctx context.Context, l *zerolog.Logger, client HTTPClient, metrics []model.Metric, address string) error {
+func SendMetrics(ctx context.Context, l *zerolog.Logger, client HTTPClient, metrics []model.AgentMetric, address string) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(metrics))
 
@@ -49,7 +49,7 @@ func SendMetrics(ctx context.Context, l *zerolog.Logger, client HTTPClient, metr
 	return nil
 }
 
-func CollectMetrics(metrics []model.Metric, counter *int64) {
+func CollectMetrics(metrics []model.AgentMetric, counter *int64) {
 	*counter++
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -62,8 +62,8 @@ func CollectMetrics(metrics []model.Metric, counter *int64) {
 			continue
 		}
 		value := msvalue.FieldByName(metric)
-		metrics[index] = model.Metric{Type: service.TypeGauge, Name: field.Name, Value: value}
+		metrics[index] = model.AgentMetric{Type: service.TypeGauge, Name: field.Name, Value: value}
 	}
-	metrics[len(model.GaugeMetrics)] = model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()}
-	metrics[len(model.GaugeMetrics)+1] = model.Metric{Type: service.TypeCounter, Name: "PollCount", Value: *counter}
+	metrics[len(model.GaugeMetrics)] = model.AgentMetric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()}
+	metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{Type: service.TypeCounter, Name: "PollCount", Value: *counter}
 }

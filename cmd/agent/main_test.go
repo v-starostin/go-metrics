@@ -19,7 +19,7 @@ import (
 func TestSendMetrics(t *testing.T) {
 	var ctx = context.Background()
 	client := &mock.HTTPClient{}
-	metrics := []model.Metric{
+	metrics := []model.AgentMetric{
 		{Type: "gauge", Name: "metric1", Value: 12},
 		{Type: "counter", Name: "metric3", Value: 3},
 	}

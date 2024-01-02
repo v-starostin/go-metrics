@@ -72,17 +72,17 @@ func (_m *Service) GetMetrics() (model.Data, error) {
 	return r0, r1
 }
 
-// SaveMetric provides a mock function with given fields: mtype, mname, mvalue
-func (_m *Service) SaveMetric(mtype string, mname string, mvalue string) error {
-	ret := _m.Called(mtype, mname, mvalue)
+// SaveMetric provides a mock function with given fields: m
+func (_m *Service) SaveMetric(m model.Metric) error {
+	ret := _m.Called(m)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SaveMetric")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
-		r0 = rf(mtype, mname, mvalue)
+	if rf, ok := ret.Get(0).(func(model.Metric) error); ok {
+		r0 = rf(m)
 	} else {
 		r0 = ret.Error(0)
 	}

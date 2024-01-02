@@ -24,6 +24,9 @@ func main() {
 	repo := repository.New(&logger)
 	srv := service.New(&logger, repo)
 	h := handler.New(&logger, srv)
+	//h4 := handler.NewGetMetric(&logger, srv)
+	//h2 := handler.NewGetMetricJSON(&logger, srv)
+	//h3 := handler.NewPostMetricJSON(&logger, srv)
 
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
@@ -32,6 +35,9 @@ func main() {
 		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", h)
 		r.Method(http.MethodGet, "/value/{type}/{name}", h)
 		r.Method(http.MethodGet, "/", h)
+		//r.Method(http.MethodPost, "/value", h2)
+		//r.Method(http.MethodPost, "/update", h3)
+
 	})
 
 	logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
