@@ -36,8 +36,8 @@ func main() {
 		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", postMetricHandler)
 		r.Method(http.MethodGet, "/value/{type}/{name}", getMetricHandler)
 		r.Method(http.MethodGet, "/", getMetricsHandler)
-		r.Method(http.MethodPost, "/update", postMetricV2Handler)
-		r.Method(http.MethodPost, "/value", getMetricV2Handler)
+		r.Method(http.MethodPost, "/update/", postMetricV2Handler)
+		r.Method(http.MethodPost, "/value/", getMetricV2Handler)
 	})
 
 	logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
