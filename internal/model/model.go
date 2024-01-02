@@ -1,9 +1,10 @@
 package model
 
 type AgentMetric struct {
-	Type  string
-	Name  string
-	Value any
+	MType string `json:"type"`
+	ID    string `json:"id"`
+	Value any    `json:"value,omitempty"`
+	Delta any    `json:"delta,omitempty"`
 }
 
 type Metric struct {
