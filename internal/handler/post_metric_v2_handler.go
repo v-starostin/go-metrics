@@ -5,25 +5,24 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/v-starostin/go-metrics/internal/model"
 	"net/http"
-	"strconv"
 )
 
-type PostMetricJSON struct {
+type PostMetricV2 struct {
 	logger  *zerolog.Logger
 	service Service
 }
 
-func NewPostMetricJSON(l *zerolog.Logger, srv Service) *PostMetricJSON {
-	return &PostMetricJSON{
+func NewPostMetricV2(l *zerolog.Logger, srv Service) *PostMetricV2 {
+	return &PostMetricV2{
 		logger:  l,
 		service: srv,
 	}
 }
 
-func (h *PostMetricJSON) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *PostMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Any("req", r.Body).Msg("Request body")
 
-	var req model.Metrics
+	var req model.Metric
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error().Err(err).Msg("Invalid incoming data")
 		writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
@@ -31,17 +30,11 @@ func (h *PostMetricJSON) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logger.Info().Any("req", req).Msg("Decoded request body")
 
-	var val string
-	if req.Value != nil {
-		val = strconv.FormatFloat(*req.Value, 'f', -1, 64)
-	} else if req.Delta != nil {
-		val = strconv.FormatInt(*req.Delta, 10)
-	}
-
-	if err := h.service.SaveMetric(req.MType, req.ID, val); err != nil {
+	if err := h.service.SaveMetric(req); err != nil {
 		h.logger.Error().Err(err).Msg("SaveMetric method error")
 		writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 		return
 	}
 
+	writeResponse(w, http.StatusOK, req)
 }

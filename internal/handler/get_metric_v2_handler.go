@@ -9,22 +9,22 @@ import (
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
-type GetMetricJSON struct {
+type GetMetricV2 struct {
 	logger  *zerolog.Logger
 	service Service
 }
 
-func NewGetMetricJSON(l *zerolog.Logger, s Service) *GetMetricJSON {
-	return &GetMetricJSON{
+func NewGetMetricV2(l *zerolog.Logger, s Service) *GetMetricV2 {
+	return &GetMetricV2{
 		logger:  l,
 		service: s,
 	}
 }
 
-func (h *GetMetricJSON) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GetMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Any("req", r.Body).Msg("Request body")
 
-	var req model.Metrics
+	var req model.Metric
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error().Err(err).Msg("Invalid incoming data")
 		writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
