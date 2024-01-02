@@ -59,6 +59,8 @@ func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 	case service.TypeCounter:
 		value, err := strconv.ParseInt(mvalue, 10, 0)
 		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			http.Error(w, "bad request", http.StatusBadRequest)
 			//return service.ErrParseMetric
 			return
 		}
@@ -71,6 +73,8 @@ func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 	case service.TypeGauge:
 		value, err := strconv.ParseFloat(mvalue, 64)
 		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			http.Error(w, "bad request", http.StatusBadRequest)
 			//return service.ErrParseMetric
 			return
 		}
