@@ -3,7 +3,9 @@ package handler
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+	"github.com/v-starostin/go-metrics/internal/service"
 	"net/http"
+	"strconv"
 )
 
 type GetMetric struct {
@@ -23,12 +25,21 @@ func (h *GetMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mname := chi.URLParam(r, "name")
 	//mvalue := chi.URLParam(r, "value")
 
-	metric, err := h.service.GetMetric2(mtype, mname)
+	metric, err := h.service.GetMetric(mtype, mname)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		http.Error(w, "metric not found", http.StatusNotFound)
 		return
 	}
 	h.logger.Info().Msgf("Recieved metric from storage: %+v", metric)
+
+	switch mtype {
+	case service.TypeGauge:
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
+	case service.TypeCounter:
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(strconv.FormatInt(*metric.Delta, 10)))
+	}
 
 }

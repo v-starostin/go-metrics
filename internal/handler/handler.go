@@ -49,8 +49,9 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 	if mtype != service.TypeCounter && mtype != service.TypeGauge {
-		w.WriteHeader(http.StatusBadRequest)
-		http.Error(w, "bad request", http.StatusBadRequest)
+		//w.WriteHeader(http.StatusBadRequest)
+		//http.Error(w, "bad request", http.StatusBadRequest)
+		writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
 		return
 	}
 
@@ -59,8 +60,9 @@ func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 	case service.TypeCounter:
 		value, err := strconv.ParseInt(mvalue, 10, 0)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			http.Error(w, "bad request", http.StatusBadRequest)
+			//w.WriteHeader(http.StatusBadRequest)
+			//http.Error(w, "bad request", http.StatusBadRequest)
+			writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
 			//return service.ErrParseMetric
 			return
 		}
@@ -73,9 +75,10 @@ func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 	case service.TypeGauge:
 		value, err := strconv.ParseFloat(mvalue, 64)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			http.Error(w, "bad request", http.StatusBadRequest)
+			//w.WriteHeader(http.StatusBadRequest)
+			//http.Error(w, "bad request", http.StatusBadRequest)
 			//return service.ErrParseMetric
+			writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
 			return
 		}
 		m = model.Metric{
@@ -87,61 +90,67 @@ func saveMetric(mtype, mname, mvalue string, w http.ResponseWriter, h Handler) {
 
 	if err := h.service.SaveMetric(m); err != nil {
 		if errors.Is(err, service.ErrParseMetric) {
-			w.WriteHeader(http.StatusBadRequest)
-			http.Error(w, "bad request", http.StatusBadRequest)
+			//w.WriteHeader(http.StatusBadRequest)
+			//http.Error(w, "bad request", http.StatusBadRequest)
+			writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
 			return
 		}
 
-		w.WriteHeader(http.StatusInternalServerError)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		//w.WriteHeader(http.StatusInternalServerError)
+		//http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue)))
+	//w.WriteHeader(http.StatusOK)
+	//w.Write([]byte(fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue)))
+	writeResponse(w, http.StatusOK, fmt.Sprintf("metric %s of type %s with value %v has been set successfully", mname, mtype, mvalue))
 }
 
 func getMetrics(mtype, mname string, w http.ResponseWriter, h Handler) {
 	if mtype == "" || mname == "" {
 		metrics, err := h.service.GetMetrics()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			//w.WriteHeader(http.StatusInternalServerError)
+			//http.Error(w, "internal server error", http.StatusInternalServerError)
+			writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 			return
 		}
 		h.logger.Info().Msgf("Recieved metrics from storage: %+v\n", metrics)
 
 		tmpl, err := template.New("metrics").Parse(model.HTMLTemplateString)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			//w.WriteHeader(http.StatusInternalServerError)
+			//http.Error(w, "internal server error", http.StatusInternalServerError)
+			writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 			return
 		}
 		buf := bytes.Buffer{}
 		if err := tmpl.Execute(&buf, metrics); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			//w.WriteHeader(http.StatusInternalServerError)
+			//http.Error(w, "internal server error", http.StatusInternalServerError)
+			writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		w.Write(buf.Bytes())
+		//w.WriteHeader(http.StatusOK)
+		//w.Write(buf.Bytes())
+		writeResponse(w, http.StatusOK, buf.Bytes())
 		return
 	}
 
 	metric, err := h.service.GetMetric(mtype, mname)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		http.Error(w, "metric not found", http.StatusNotFound)
+		//w.WriteHeader(http.StatusNotFound)
+		//http.Error(w, "metric not found", http.StatusNotFound)
+		writeResponse(w, http.StatusNotFound, model.Error{Error: "Not found"})
 		return
 	}
 	h.logger.Info().Msgf("Recieved metric from storage: %+v", metric)
 
 	switch mtype {
 	case service.TypeGauge:
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
+		writeResponse(w, 200, *metric.Value)
 	case service.TypeCounter:
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.FormatInt(*metric.Delta, 10)))
+		writeResponse(w, 200, *metric.Delta)
 	}
 }
