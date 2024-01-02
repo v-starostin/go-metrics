@@ -1,12 +1,20 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+
+	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
-	"net/http"
-	"strconv"
 )
+
+type Service interface {
+	SaveMetric(m model.Metric) error
+	GetMetric(mtype, mname string) (*model.Metric, error)
+	GetMetrics() (model.Data, error)
+}
 
 type GetMetric struct {
 	logger  *zerolog.Logger
@@ -23,23 +31,18 @@ func NewGetMetric(l *zerolog.Logger, srv Service) *GetMetric {
 func (h *GetMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mtype := chi.URLParam(r, "type")
 	mname := chi.URLParam(r, "name")
-	//mvalue := chi.URLParam(r, "value")
 
 	metric, err := h.service.GetMetric(mtype, mname)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		http.Error(w, "metric not found", http.StatusNotFound)
+		writeResponse(w, http.StatusNotFound, model.Error{Error: "Not found"})
 		return
 	}
-	h.logger.Info().Msgf("Recieved metric from storage: %+v", metric)
+	h.logger.Info().Any("metric", metric).Msg("Received metric from storage")
 
 	switch mtype {
 	case service.TypeGauge:
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.FormatFloat(*metric.Value, 'f', -1, 64)))
+		writeResponse(w, http.StatusOK, *metric.Value)
 	case service.TypeCounter:
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(strconv.FormatInt(*metric.Delta, 10)))
+		writeResponse(w, http.StatusOK, *metric.Delta)
 	}
-
 }

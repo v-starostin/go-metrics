@@ -23,18 +23,18 @@ func main() {
 	}
 	repo := repository.New(&logger)
 	srv := service.New(&logger, repo)
-	h := handler.New(&logger, srv)
-	//h4 := handler.NewGetMetric(&logger, srv)
-	//h2 := handler.NewGetMetricJSON(&logger, srv)
-	//h3 := handler.NewPostMetricJSON(&logger, srv)
+	//h := handler.New(&logger, srv)
+	getMetricHandler := handler.NewGetMetric(&logger, srv)
+	getMetricsHandler := handler.NewGetMetrics(&logger, srv)
+	postMetricHandler := handler.NewPostMetric(&logger, srv)
 
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Use(middleware.RequestLogger(&handler.LogFormatter{Logger: &logger}))
 		r.Use(middleware.Recoverer)
-		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", h)
-		r.Method(http.MethodGet, "/value/{type}/{name}", h)
-		r.Method(http.MethodGet, "/", h)
+		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", postMetricHandler)
+		r.Method(http.MethodGet, "/value/{type}/{name}", getMetricHandler)
+		r.Method(http.MethodGet, "/", getMetricsHandler)
 		//r.Method(http.MethodPost, "/value", h2)
 		//r.Method(http.MethodPost, "/update", h3)
 

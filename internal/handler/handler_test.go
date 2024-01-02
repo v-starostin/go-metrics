@@ -33,12 +33,18 @@ type handlerTestSuite struct {
 }
 
 func (suite *handlerTestSuite) SetupTest() {
+	l := zerolog.Logger{}
 	srv := &mock.Service{}
-	h := handler.New(&zerolog.Logger{}, srv)
+
+	getMetricHandler := handler.NewGetMetric(&l, srv)
+	getMetricsHandler := handler.NewGetMetrics(&l, srv)
+	postMetricHandler := handler.NewPostMetric(&l, srv)
+
 	r := chi.NewRouter()
-	r.Get("/", h.ServeHTTP)
-	r.Get("/value/{type}/{name}", h.ServeHTTP)
-	r.Post("/update/{type}/{name}/{value}", h.ServeHTTP)
+	r.Get("/", getMetricsHandler.ServeHTTP)
+	r.Get("/value/{type}/{name}", getMetricHandler.ServeHTTP)
+	r.Post("/update/{type}/{name}/{value}", postMetricHandler.ServeHTTP)
+
 	suite.r = r
 	suite.service = srv
 }
@@ -57,7 +63,6 @@ func (suite *handlerTestSuite) TestHandlerServiceOK() {
 	*f = 1.23
 
 	m := model.Metric{MType: "gauge", ID: "metric1", Value: f}
-	//suite.service.On("SaveMetric", "gauge", "metric1", "1.23").Once().Return(nil)
 	suite.service.On("SaveMetric", m).Once().Return(nil)
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
