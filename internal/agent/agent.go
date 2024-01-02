@@ -3,12 +3,13 @@ package agent
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"reflect"
 	"runtime"
 	"sync"
+
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -18,7 +19,7 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric, address string) error {
+func SendMetrics(ctx context.Context, l *zerolog.Logger, client HTTPClient, metrics []model.AgentMetric, address string) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(metrics))
 
@@ -30,13 +31,13 @@ func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric,
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/%s/%s/%v", address, m.Type, m.Name, m.Value), nil)
 			if err != nil {
-				log.Println(err)
+				l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
 			}
 			req.Header.Add("Content-Type", "text/plain")
 			res, err := client.Do(req)
 			if err != nil {
-				log.Println(err)
+				l.Error().Err(err).Msg("Do method error")
 				return
 			}
 			res.Body.Close()
@@ -48,7 +49,7 @@ func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric,
 	return nil
 }
 
-func CollectMetrics(metrics []model.Metric, counter *int64) {
+func CollectMetrics(metrics []model.AgentMetric, counter *int64) {
 	*counter++
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -61,8 +62,8 @@ func CollectMetrics(metrics []model.Metric, counter *int64) {
 			continue
 		}
 		value := msvalue.FieldByName(metric)
-		metrics[index] = model.Metric{Type: service.TypeGauge, Name: field.Name, Value: value}
+		metrics[index] = model.AgentMetric{Type: service.TypeGauge, Name: field.Name, Value: value}
 	}
-	metrics[len(model.GaugeMetrics)] = model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()}
-	metrics[len(model.GaugeMetrics)+1] = model.Metric{Type: service.TypeCounter, Name: "PollCount", Value: *counter}
+	metrics[len(model.GaugeMetrics)] = model.AgentMetric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()}
+	metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{Type: service.TypeCounter, Name: "PollCount", Value: *counter}
 }
