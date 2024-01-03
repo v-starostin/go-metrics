@@ -1,7 +1,10 @@
 package handler_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	mmock "github.com/stretchr/testify/mock"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -39,11 +42,15 @@ func (suite *handlerTestSuite) SetupTest() {
 	getMetricHandler := handler.NewGetMetric(&l, srv)
 	getMetricsHandler := handler.NewGetMetrics(&l, srv)
 	postMetricHandler := handler.NewPostMetric(&l, srv)
+	getMetricV2Handler := handler.NewGetMetricV2(&l, srv)
+	postMetricV2Handler := handler.NewPostMetricV2(&l, srv)
 
 	r := chi.NewRouter()
 	r.Get("/", getMetricsHandler.ServeHTTP)
 	r.Get("/value/{type}/{name}", getMetricHandler.ServeHTTP)
 	r.Post("/update/{type}/{name}/{value}", postMetricHandler.ServeHTTP)
+	r.Post("/value/", getMetricV2Handler.ServeHTTP)
+	r.Post("/update/", postMetricV2Handler.ServeHTTP)
 
 	suite.r = r
 	suite.service = srv
@@ -228,6 +235,125 @@ func (suite *handlerTestSuite) TestHandlerGetAllInternalServerError() {
 	rr := httptest.NewRecorder()
 
 	suite.service.On("GetMetrics").Once().Return(nil, errors.New("internal server error"))
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal(`{"error":"Internal server error"}`, string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerGetMetricOK() {
+	b := []byte(`{"id": "metric1", "type":"gauge"}`)
+	req, err := http.NewRequest(http.MethodPost, address+"/value/", bytes.NewReader(b))
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	f := new(float64)
+	*f = 1.25
+
+	m := &model.Metric{MType: "gauge", ID: "metric1", Value: f}
+	suite.service.On("GetMetric", m.MType, m.ID).Once().Return(m, nil)
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal(`{"id":"metric1","type":"gauge","value":1.25}`, string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerGetMetricInvalidData() {
+	b := []byte(`{"id": "metric1", "type":"gauge}`)
+	req, err := http.NewRequest(http.MethodPost, address+"/value/", bytes.NewReader(b))
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusBadRequest, res.StatusCode)
+	suite.Equal(`{"error":"Bad request"}`, string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerMetricNotFound() {
+	b := []byte(`{"id": "metric2", "type":"gauge"}`)
+	req, err := http.NewRequest(http.MethodPost, address+"/value/", bytes.NewReader(b))
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	suite.service.On("GetMetric", "gauge", "metric2").Once().Return(nil, errors.New("err"))
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusNotFound, res.StatusCode)
+	suite.Equal(`{"error":"Not found"}`, string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerPostMetricOK() {
+	f := new(float64)
+	*f = 1.25
+	m := model.Metric{MType: "gauge", ID: "metric1", Value: f}
+	b, err := json.Marshal(m)
+	suite.NoError(err)
+	//b := []byte(`{"id": "metric1", "type": "gauge", "value": 1.25}`)
+	req, err := http.NewRequest(http.MethodPost, address+"/update/", bytes.NewReader(b))
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	suite.service.On("SaveMetric", m).Once().Return(nil)
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal(`{"id":"metric1","type":"gauge","value":1.25}`, string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerPostMetricInvalidData() {
+	b := []byte(`{"id": "metric1", "type": "gauge", "value": "1.25"}`)
+	req, err := http.NewRequest(http.MethodPost, address+"/update/", bytes.NewReader(b))
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusBadRequest, res.StatusCode)
+	suite.Equal(`{"error":"Bad request"}`, string(resBody))
+}
+
+func (suite *handlerTestSuite) TestHandlerPostMetricInternalServerError() {
+	b := []byte(`{"id": "metric1", "type": "gauge", "value": 1.25}`)
+	req, err := http.NewRequest(http.MethodPost, address+"/update/", bytes.NewReader(b))
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	suite.service.On("SaveMetric", mmock.Anything).Once().Return(errors.New("err"))
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()

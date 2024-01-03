@@ -34,6 +34,7 @@ func (h *GetMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.service.GetMetric(req.MType, req.ID)
 	if err != nil {
+		h.logger.Error().Err(err).Msg("GetMetric method error")
 		writeResponse(w, http.StatusNotFound, model.Error{Error: "Not found"})
 		return
 	}
