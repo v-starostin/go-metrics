@@ -32,7 +32,8 @@ func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	tmpl, err := template.New("metrics").Parse(model.HTMLTemplateString)
 	if err != nil {
-		writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
+		// to be fixed
+		writeResponse(w, http.StatusOK, model.Error{Error: "Internal server error"})
 		return
 	}
 	buf := bytes.Buffer{}
