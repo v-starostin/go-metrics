@@ -37,14 +37,15 @@ func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buf := bytes.Buffer{}
-	if err := tmpl.Execute(&buf, metrics); err != nil {
-		// to be fixed
-		//writeResponse(w, http.StatusOK, model.Error{Error: "Internal server error"})
-		w.Header().Add("Content-Type", "text/html")
-		w.Header().Add("Content-Encoding", "gzip")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Internal server error"))
-		return
-	}
-	writeResponse(w, http.StatusOK, buf.Bytes())
+	tmpl.Execute(&buf, metrics)
+	// to be fixed
+	//writeResponse(w, http.StatusOK, model.Error{Error: "Internal server error"})
+	//w.Header().Add("Content-Type", "text/html")
+	//w.Header().Add("Content-Encoding", "gzip")
+	//w.WriteHeader(http.StatusOK)
+	//w.Write([]byte(`<html><body>Hello, world<br></body></html>`))
+	//return
+	//}
+	w.Header().Add("Content-Type", "text/html")
+	writeResponse(w, http.StatusOK, []byte(`<html><body>Hello, world<br></body></html>`))
 }
