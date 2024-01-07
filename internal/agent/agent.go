@@ -1,14 +1,18 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"reflect"
 	"runtime"
 	"sync"
+
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -18,7 +22,17 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric, address string) error {
+func SendMetrics(
+	ctx context.Context,
+	l *zerolog.Logger,
+	client HTTPClient,
+	metrics []model.AgentMetric,
+	address string,
+	pool *sync.Pool,
+	// w *flate.Writer,
+	// w io.Writer,
+	// buf *bytes.Buffer,
+) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(metrics))
 
@@ -28,27 +42,54 @@ func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric,
 		go func() {
 			defer wg.Done()
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/%s/%s/%v", address, m.Type, m.Name, m.Value), nil)
+			b, err := json.Marshal(m)
 			if err != nil {
-				log.Println(err)
+				l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
 			}
-			req.Header.Add("Content-Type", "text/plain")
+
+			// compress data
+			buf := &bytes.Buffer{}
+			//w := gzip.NewWriter(buf)
+			gw := pool.Get().(*gzip.Writer)
+			defer pool.Put(gw)
+			//buf.Reset()
+			gw.Reset(buf)
+			l.Info().Msgf("buffer points to: %p", buf)
+			l.Info().Msgf("buffer's content: %v", buf.String())
+			n, err := gw.Write(b)
+			if err != nil {
+				return
+			}
+			l.Info().Msgf("buffer's content: %v", buf.String())
+			gw.Close()
+
+			l.Info().
+				Int("len of b", len(b)).
+				Int("written bytes", n).
+				Int("len of buf", len(buf.Bytes())).
+				Send()
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", address), buf)
+			if err != nil {
+				l.Error().Err(err).Msg("NewRequestWithContext method error")
+				return
+			}
+			req.Header.Add("Content-Type", "application/json")
+			req.Header.Add("Content-Encoding", "gzip")
 			res, err := client.Do(req)
 			if err != nil {
-				log.Println(err)
+				l.Error().Err(err).Msg("Do method error")
 				return
 			}
 			res.Body.Close()
 		}()
 	}
-
 	wg.Wait()
-
 	return nil
 }
 
-func CollectMetrics(metrics []model.Metric, counter *int64) {
+func CollectMetrics(metrics []model.AgentMetric, counter *int64) {
 	*counter++
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -60,9 +101,9 @@ func CollectMetrics(metrics []model.Metric, counter *int64) {
 		if !ok {
 			continue
 		}
-		value := msvalue.FieldByName(metric)
-		metrics[index] = model.Metric{Type: service.TypeGauge, Name: field.Name, Value: value}
+		value := msvalue.FieldByName(metric).Interface()
+		metrics[index] = model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value}
 	}
-	metrics[len(model.GaugeMetrics)] = model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()}
-	metrics[len(model.GaugeMetrics)+1] = model.Metric{Type: service.TypeCounter, Name: "PollCount", Value: *counter}
+	metrics[len(model.GaugeMetrics)] = model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()}
+	metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *counter}
 }

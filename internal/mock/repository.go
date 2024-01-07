@@ -52,35 +52,17 @@ func (_m *Repository) LoadAll() model.Data {
 	return r0
 }
 
-// StoreCounter provides a mock function with given fields: mtype, mname, mvalue
-func (_m *Repository) StoreCounter(mtype string, mname string, mvalue int64) bool {
-	ret := _m.Called(mtype, mname, mvalue)
+// Store provides a mock function with given fields: m
+func (_m *Repository) Store(m model.Metric) bool {
+	ret := _m.Called(m)
 
 	if len(ret) == 0 {
-		panic("no return value specified for StoreCounter")
+		panic("no return value specified for Store")
 	}
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string, int64) bool); ok {
-		r0 = rf(mtype, mname, mvalue)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	return r0
-}
-
-// StoreGauge provides a mock function with given fields: mtype, mname, mvalue
-func (_m *Repository) StoreGauge(mtype string, mname string, mvalue float64) bool {
-	ret := _m.Called(mtype, mname, mvalue)
-
-	if len(ret) == 0 {
-		panic("no return value specified for StoreGauge")
-	}
-
-	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string, float64) bool); ok {
-		r0 = rf(mtype, mname, mvalue)
+	if rf, ok := ret.Get(0).(func(model.Metric) bool); ok {
+		r0 = rf(m)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
