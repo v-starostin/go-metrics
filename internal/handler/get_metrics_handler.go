@@ -38,7 +38,8 @@ func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	buf := bytes.Buffer{}
 	if err := tmpl.Execute(&buf, metrics); err != nil {
-		writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
+		// to be fixed
+		writeResponse(w, http.StatusOK, model.Error{Error: "Internal server error"})
 		return
 	}
 	writeResponse(w, http.StatusOK, buf.Bytes())
