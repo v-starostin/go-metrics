@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"os"
 
@@ -32,6 +33,8 @@ func main() {
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Use(middleware.RequestLogger(&handler.LogFormatter{Logger: &logger}))
+		r.Use(middleware.Compress(5, "application/json"))
+		r.Use(handler.Decompress(&logger))
 		r.Use(middleware.Recoverer)
 		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", postMetricHandler)
 		r.Method(http.MethodGet, "/value/{type}/{name}", getMetricHandler)
@@ -42,7 +45,7 @@ func main() {
 
 	logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
 	err = http.ListenAndServe(cfg.ServerAddress, r)
-	if err != nil && err != http.ErrServerClosed {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Fatal().Err(err).Msg("Server error")
 	}
 }

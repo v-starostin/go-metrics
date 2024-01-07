@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"compress/gzip"
 	"net/http"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -38,4 +41,34 @@ func (l *LogEntry) Panic(v any, stack []byte) {
 		Interface("panic", v).
 		Bytes("stack", stack).
 		Msg("Panic handled")
+}
+
+func Decompress(l *zerolog.Logger) func(next http.Handler) http.Handler {
+	pool := sync.Pool{
+		New: func() any { return new(gzip.Reader) },
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			encodingHeaders := r.Header.Values("Content-Encoding")
+			if !slices.Contains(encodingHeaders, "gzip") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			gr, ok := pool.Get().(*gzip.Reader)
+			if !ok {
+				l.Error().Msg("Error to get Reader")
+			}
+			defer pool.Put(gr)
+
+			if err := gr.Reset(r.Body); err != nil {
+				l.Error().Err(err).Msg("Reset gr error")
+			}
+			defer gr.Close()
+
+			r.Body = gr
+			next.ServeHTTP(w, r)
+		})
+	}
 }

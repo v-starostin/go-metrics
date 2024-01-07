@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -21,7 +22,17 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func SendMetrics(ctx context.Context, l *zerolog.Logger, client HTTPClient, metrics []model.AgentMetric, address string) error {
+func SendMetrics(
+	ctx context.Context,
+	l *zerolog.Logger,
+	client HTTPClient,
+	metrics []model.AgentMetric,
+	address string,
+	pool *sync.Pool,
+	// w *flate.Writer,
+	// w io.Writer,
+	// buf *bytes.Buffer,
+) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(metrics))
 
@@ -36,12 +47,36 @@ func SendMetrics(ctx context.Context, l *zerolog.Logger, client HTTPClient, metr
 				l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
 			}
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", address), bytes.NewReader(b))
+
+			// compress data
+			buf := &bytes.Buffer{}
+			//w := gzip.NewWriter(buf)
+			gw := pool.Get().(*gzip.Writer)
+			defer pool.Put(gw)
+			//buf.Reset()
+			gw.Reset(buf)
+			l.Info().Msgf("buffer points to: %p", buf)
+			l.Info().Msgf("buffer's content: %v", buf.String())
+			n, err := gw.Write(b)
+			if err != nil {
+				return
+			}
+			l.Info().Msgf("buffer's content: %v", buf.String())
+			gw.Close()
+
+			l.Info().
+				Int("len of b", len(b)).
+				Int("written bytes", n).
+				Int("len of buf", len(buf.Bytes())).
+				Send()
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", address), buf)
 			if err != nil {
 				l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
 			}
 			req.Header.Add("Content-Type", "application/json")
+			req.Header.Add("Content-Encoding", "gzip")
 			res, err := client.Do(req)
 			if err != nil {
 				l.Error().Err(err).Msg("Do method error")

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -32,6 +35,15 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
+	//buf := &bytes.Buffer{}
+	//w := gzip.NewWriter(buf)
+	pool := &sync.Pool{
+		New: func() any { return gzip.NewWriter(io.Discard) },
+	}
+	//if err != nil {
+	//	logger.Fatal().Err(err).Msg("NewWriter method error")
+	//}
+
 	logger.Info().
 		Int("pollInterval", cfg.PollInterval).
 		Int("reportInterval", cfg.ReportInterval).
@@ -44,7 +56,14 @@ loop:
 			agent.CollectMetrics(metrics, &counter)
 			logger.Info().Interface("metrics", metrics).Msg("Metrics collected")
 		case <-report.C:
-			if err := agent.SendMetrics(ctx, &logger, client, metrics, cfg.ServerAddress); err != nil {
+			if err := agent.SendMetrics(
+				ctx,
+				&logger,
+				client,
+				metrics,
+				cfg.ServerAddress,
+				pool,
+			); err != nil {
 				logger.Fatal().Err(err).Msg("Send metrics error")
 			}
 			logger.Info().Interface("metrics", metrics).Msg("Metrics sent")
