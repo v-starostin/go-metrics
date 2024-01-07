@@ -1,13 +1,17 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
-	"fmt"
-	"log"
+	"io"
 	"net/http"
+	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/config"
@@ -15,9 +19,14 @@ import (
 )
 
 func main() {
-	metrics := make([]model.Metric, len(model.GaugeMetrics)+2)
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	metrics := make([]model.AgentMetric, len(model.GaugeMetrics)+2)
 	counter := int64(0)
-	cfg := config.NewAgent()
+	cfg, err := config.NewAgent()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Configuration error")
+	}
 	poll := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
 	report := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 	client := &http.Client{
@@ -26,24 +35,44 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	log.Printf("Started gathering metrics with pollInterval: %v, reportInterval: %v", cfg.PollInterval, cfg.ReportInterval)
+	//buf := &bytes.Buffer{}
+	//w := gzip.NewWriter(buf)
+	pool := &sync.Pool{
+		New: func() any { return gzip.NewWriter(io.Discard) },
+	}
+	//if err != nil {
+	//	logger.Fatal().Err(err).Msg("NewWriter method error")
+	//}
+
+	logger.Info().
+		Int("pollInterval", cfg.PollInterval).
+		Int("reportInterval", cfg.ReportInterval).
+		Msg("Started collecting metrics")
+
 loop:
 	for {
 		select {
 		case <-poll.C:
 			agent.CollectMetrics(metrics, &counter)
-			log.Printf("\ncollecting: %+v\n\n", metrics)
+			logger.Info().Interface("metrics", metrics).Msg("Metrics collected")
 		case <-report.C:
-			fmt.Printf("\nsending: %+v\n\n", metrics)
-			if err := agent.SendMetrics(ctx, client, metrics, cfg.ServerAddress); err != nil {
-				log.Fatal(err)
+			if err := agent.SendMetrics(
+				ctx,
+				&logger,
+				client,
+				metrics,
+				cfg.ServerAddress,
+				pool,
+			); err != nil {
+				logger.Fatal().Err(err).Msg("Send metrics error")
 			}
+			logger.Info().Interface("metrics", metrics).Msg("Metrics sent")
 		case <-ctx.Done():
-			log.Println(ctx.Err())
+			logger.Info().Err(ctx.Err()).Send()
 			poll.Stop()
 			report.Stop()
 			break loop
 		}
 	}
-	log.Println("Finished gathering metrics")
+	logger.Info().Msg("Finished collecting metrics")
 }
