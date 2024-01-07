@@ -33,7 +33,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Use(middleware.RequestLogger(&handler.LogFormatter{Logger: &logger}))
-		r.Use(middleware.Compress(5, "application/json"))
+		r.Use(middleware.Compress(5))
 		r.Use(handler.Decompress(&logger))
 		r.Use(middleware.Recoverer)
 		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", postMetricHandler)
