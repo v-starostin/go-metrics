@@ -1,10 +1,12 @@
 package main_test
 
 import (
+	"compress/gzip"
 	"context"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -29,7 +31,10 @@ func TestSendMetrics(t *testing.T) {
 			Body:       io.NopCloser(strings.NewReader("test")),
 		}
 		client.On("Do", mmock.Anything).Once().Return(res, nil)
-		err := agent.SendMetrics(ctx, &zerolog.Logger{}, client, metrics, "0.0.0.0:8080")
+		pool := &sync.Pool{
+			New: func() any { return gzip.NewWriter(io.Discard) },
+		}
+		err := agent.SendMetrics(ctx, &zerolog.Logger{}, client, metrics, "0.0.0.0:8080", pool)
 		assert.NoError(t, err)
 	})
 }
