@@ -47,7 +47,7 @@ func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//w.Header().Add("Content-Type", "text/html")
+	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf.Bytes())
 	//writeResponse(w, http.StatusOK, []byte(`<html><body>Hello, world<br></body></html>`))
