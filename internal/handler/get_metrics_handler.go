@@ -41,6 +41,7 @@ func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// to be fixed
 		//writeResponse(w, http.StatusOK, model.Error{Error: "Internal server error"})
 		w.Header().Add("Content-Type", "text/html")
+		w.Header().Add("Content-Encoding", "gzip")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Internal server error"))
 		return
