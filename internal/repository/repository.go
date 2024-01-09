@@ -100,13 +100,20 @@ func (s *MemStorage) Store(m model.Metric) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	defer func() {
+		if s.interval == 0 {
+			if err := s.WriteToFile(); err != nil {
+				s.logger.Error().Err(err).Msg("Failed to write storage content to file")
+			}
+		}
+	}()
+
 	metrics, ok := s.data[m.MType]
 	if !ok {
 		s.data[m.MType] = map[string]model.Metric{
 			m.ID: {ID: m.ID, MType: m.MType, Value: m.Value, Delta: m.Delta},
 		}
-		goto label1
-		//return true
+		return true
 	}
 
 	switch m.MType {
@@ -116,20 +123,12 @@ func (s *MemStorage) Store(m model.Metric) bool {
 		metric, ok := metrics[m.ID]
 		if !ok {
 			metrics[m.ID] = model.Metric{ID: m.ID, MType: m.MType, Delta: m.Delta}
-			goto label1
-			//return true
+			return true
 		}
 		*metric.Delta += *m.Delta
 		metrics[m.ID] = model.Metric{ID: m.ID, MType: m.MType, Delta: metric.Delta}
 	}
 	s.logger.Info().Interface("Storage content", s.data).Send()
-
-label1:
-	if s.interval == 0 {
-		if err := s.WriteToFile(); err != nil {
-			s.logger.Error().Err(err).Msg("Failed to write storage content to file")
-		}
-	}
 
 	return true
 }

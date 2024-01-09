@@ -35,14 +35,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	//buf := &bytes.Buffer{}
-	//w := gzip.NewWriter(buf)
 	pool := &sync.Pool{
 		New: func() any { return gzip.NewWriter(io.Discard) },
 	}
-	//if err != nil {
-	//	logger.Fatal().Err(err).Msg("NewWriter method error")
-	//}
 
 	logger.Info().
 		Int("pollInterval", cfg.PollInterval).

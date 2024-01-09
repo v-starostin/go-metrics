@@ -29,9 +29,6 @@ func SendMetrics(
 	metrics []model.AgentMetric,
 	address string,
 	pool *sync.Pool,
-	// w *flate.Writer,
-	// w io.Writer,
-	// buf *bytes.Buffer,
 ) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(metrics))
@@ -48,12 +45,9 @@ func SendMetrics(
 				return
 			}
 
-			// compress data
 			buf := &bytes.Buffer{}
-			//w := gzip.NewWriter(buf)
 			gw := pool.Get().(*gzip.Writer)
 			defer pool.Put(gw)
-			//buf.Reset()
 			gw.Reset(buf)
 			l.Info().Msgf("buffer points to: %p", buf)
 			l.Info().Msgf("buffer's content: %v", buf.String())

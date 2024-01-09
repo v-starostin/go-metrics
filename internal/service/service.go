@@ -58,8 +58,6 @@ func (s *Service) SaveMetric(m model.Metric) error {
 	logger := s.logger.With().
 		Str("type", m.MType).
 		Str("name", m.ID).
-		//Float64("value", *m.Value).
-		//Int64("delta", *m.Delta).
 		Logger()
 
 	if ok := s.repo.Store(m); !ok {

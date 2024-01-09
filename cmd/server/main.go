@@ -64,27 +64,37 @@ func main() {
 	ch := make(chan struct{})
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
-	ticker := time.NewTicker(time.Duration(*cfg.StoreInterval) * time.Second)
 
-	go func() {
-	loop:
-		for {
-			select {
-			case <-ticker.C:
-				if err := repo.WriteToFile(); err != nil {
-					logger.Error().Err(err).Msg("Failed to write storage content to file")
+	if *cfg.StoreInterval > 0 {
+		ticker := time.NewTicker(time.Duration(*cfg.StoreInterval) * time.Second)
+
+		go func() {
+		loop:
+			for {
+				select {
+				case <-ticker.C:
+					if err := repo.WriteToFile(); err != nil {
+						logger.Error().Err(err).Msg("Failed to write storage content to file")
+					}
+				case <-ctx.Done():
+					ticker.Stop()
+					if err := repo.WriteToFile(); err != nil {
+						logger.Error().Err(err).Msg("Failed to write storage content to file")
+					}
+					ch <- struct{}{}
+					break loop
 				}
-			case <-ctx.Done():
-				logger.Error().Err(ctx.Err()).Msg("Interruption signal received")
-				ticker.Stop()
-				if err := repo.WriteToFile(); err != nil {
-					logger.Error().Err(err).Msg("Failed to write storage content to file")
-				}
-				ch <- struct{}{}
-				break loop
 			}
-		}
-	}()
+		}()
+	} else {
+		go func() {
+			<-ctx.Done()
+			if err := repo.WriteToFile(); err != nil {
+				logger.Error().Err(err).Msg("Failed to write storage content to file")
+			}
+			ch <- struct{}{}
+		}()
+	}
 
 	go func() {
 		logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
@@ -93,9 +103,8 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done()
 	<-ch
-	logger.Info().Str("ctx.Err().Error()", ctx.Err().Error()).Msg("Shutdown signal received")
+	logger.Info().Msg("Shutdown signal received")
 
 	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
