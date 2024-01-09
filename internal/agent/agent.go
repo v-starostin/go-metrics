@@ -90,14 +90,14 @@ func CollectMetrics(metrics []model.AgentMetric, counter *int64) {
 	msvalue := reflect.ValueOf(memStats)
 	mstype := msvalue.Type()
 
-	for _, metric := range model.GaugeMetrics {
+	for index, metric := range model.GaugeMetrics {
 		field, ok := mstype.FieldByName(metric)
 		if !ok {
 			continue
 		}
 		value := msvalue.FieldByName(metric).Interface()
-		metrics = append(metrics, model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value})
+		metrics[index] = model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value}
 	}
-	metrics = append(metrics, model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()})
-	metrics = append(metrics, model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *counter})
+	metrics[len(model.GaugeMetrics)] = model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()}
+	metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *counter}
 }
