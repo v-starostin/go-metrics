@@ -32,8 +32,8 @@ func main() {
 	client := &http.Client{
 		Timeout: time.Minute,
 	}
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
-	defer cancel()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
 
 	//buf := &bytes.Buffer{}
 	//w := gzip.NewWriter(buf)

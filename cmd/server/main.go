@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,16 +23,25 @@ func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	cfg, err := config.NewServer()
+
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
-	repo := repository.New(&logger)
+	repo := repository.New(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	srv := service.New(&logger, repo)
 	getMetricHandler := handler.NewGetMetric(&logger, srv)
 	getMetricsHandler := handler.NewGetMetrics(&logger, srv)
 	getMetricV2Handler := handler.NewGetMetricV2(&logger, srv)
 	postMetricHandler := handler.NewPostMetric(&logger, srv)
 	postMetricV2Handler := handler.NewPostMetricV2(&logger, srv)
+
+	if *cfg.Restore {
+		err := repo.RestoreFromFile()
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed restore file")
+		}
+		logger.Info().Msg("Storage file has been restored")
+	}
 
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
@@ -43,9 +56,53 @@ func main() {
 		r.Method(http.MethodPost, "/value/", getMetricV2Handler)
 	})
 
-	logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
-	err = http.ListenAndServe(cfg.ServerAddress, r)
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logger.Fatal().Err(err).Msg("Server error")
+	server := http.Server{
+		Addr:    cfg.ServerAddress,
+		Handler: r,
 	}
+
+	ch := make(chan struct{})
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+	ticker := time.NewTicker(time.Duration(*cfg.StoreInterval) * time.Second)
+
+	go func() {
+	loop:
+		for {
+			select {
+			case <-ticker.C:
+				if err := repo.WriteToFile(); err != nil {
+					logger.Error().Err(err).Msg("Failed to write storage content to file")
+				}
+			case <-ctx.Done():
+				logger.Error().Err(ctx.Err()).Msg("Interruption signal received")
+				ticker.Stop()
+				if err := repo.WriteToFile(); err != nil {
+					logger.Error().Err(err).Msg("Failed to write storage content to file")
+				}
+				ch <- struct{}{}
+				break loop
+			}
+		}
+	}()
+
+	go func() {
+		logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Fatal().Err(err).Msg("Server error")
+		}
+	}()
+
+	<-ctx.Done()
+	<-ch
+	logger.Info().Str("ctx.Err().Error()", ctx.Err().Error()).Msg("Shutdown signal received")
+
+	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(cctx); err != nil {
+		logger.Fatal().Err(err).Msg("Shutdown server error")
+	}
+
+	logger.Info().Msg("Server stopped gracefully")
 }
