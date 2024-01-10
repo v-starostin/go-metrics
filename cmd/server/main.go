@@ -23,7 +23,6 @@ func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	cfg, err := config.NewServer()
-
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
@@ -61,7 +60,6 @@ func main() {
 		Handler: r,
 	}
 
-	//ch := make(chan struct{})
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
@@ -78,24 +76,11 @@ func main() {
 					}
 				case <-ctx.Done():
 					ticker.Stop()
-					//if err := repo.WriteToFile(); err != nil {
-					//	logger.Error().Err(err).Msg("Failed to write storage content to file")
-					//}
-					//ch <- struct{}{}
 					break loop
 				}
 			}
 		}()
 	}
-	//else {
-	//go func() {
-	//	<-ctx.Done()
-	//	if err := repo.WriteToFile(); err != nil {
-	//		logger.Error().Err(err).Msg("Failed to write storage content to file")
-	//	}
-	//	ch <- struct{}{}
-	//}()
-	//}
 
 	go func() {
 		logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	mmock "github.com/stretchr/testify/mock"
 	"io"
 	"net/http"
@@ -199,34 +200,34 @@ func (suite *handlerTestSuite) TestHandlerGetMetricNotFound() {
 	suite.Equal(`{"error":"Not found"}`, string(resBody))
 }
 
-//func (suite *handlerTestSuite) TestHandlerGetAllOK() {
-//	req, err := http.NewRequest(http.MethodGet, address+getAllPath, nil)
-//	suite.NoError(err)
-//
-//	rr := httptest.NewRecorder()
-//
-//	f1, f2, i := new(float64), new(float64), new(int64)
-//	*f1, *f2, *i = 1.23, 1.24, 10
-//
-//	m1 := model.Metric{MType: "counter", ID: "metric1", Delta: i}
-//	m2 := model.Metric{MType: "gauge", ID: "metric1", Value: f1}
-//	m3 := model.Metric{MType: "gauge", ID: "metric2", Value: f2}
-//	d := model.Data(map[string]map[string]model.Metric{
-//		"counter": {"metric1": m1},
-//		"gauge":   {"metric1": m2, "metric2": m3},
-//	})
-//
-//	suite.service.On("GetMetrics").Once().Return(d, nil)
-//
-//	suite.r.ServeHTTP(rr, req)
-//	res := rr.Result()
-//	defer res.Body.Close()
-//	resBody, err := io.ReadAll(res.Body)
-//	suite.NoError(err)
-//
-//	suite.Equal(http.StatusOK, res.StatusCode)
-//	suite.Equal(expectedHTML, string(resBody))
-//}
+func (suite *handlerTestSuite) TestHandlerGetAllOK() {
+	req, err := http.NewRequest(http.MethodGet, address+getAllPath, nil)
+	suite.NoError(err)
+
+	rr := httptest.NewRecorder()
+
+	f1, f2, i := new(float64), new(float64), new(int64)
+	*f1, *f2, *i = 1.23, 1.24, 10
+
+	m1 := model.Metric{MType: "counter", ID: "metric1", Delta: i}
+	m2 := model.Metric{MType: "gauge", ID: "metric1", Value: f1}
+	m3 := model.Metric{MType: "gauge", ID: "metric2", Value: f2}
+	d := model.Data(map[string]map[string]model.Metric{
+		"counter": {"metric1": m1},
+		"gauge":   {"metric1": m2, "metric2": m3},
+	})
+
+	suite.service.On("GetMetrics").Once().Return(d, nil)
+
+	suite.r.ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	suite.NoError(err)
+
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal(expectedHTML, fmt.Sprintf("%s", resBody))
+}
 
 func (suite *handlerTestSuite) TestHandlerGetAllInternalServerError() {
 	req, err := http.NewRequest(http.MethodGet, address+getAllPath, nil)
@@ -375,11 +376,11 @@ var expectedHTML = `
     <h1>Metrics</h1>
     <ul>
     
-        <li>metric1: 10</li>
+        <li>ID: metric1, Value: &lt;nil&gt;, Delta: 10</li>
     
-        <li>metric1: 1.23</li>
+        <li>ID: metric1, Value: 1.23, Delta: &lt;nil&gt;</li>
     
-        <li>metric2: 1.24</li>
+        <li>ID: metric2, Value: 1.24, Delta: &lt;nil&gt;</li>
     
     </ul>
 </body>

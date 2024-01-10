@@ -3,13 +3,13 @@ package repository
 import (
 	"encoding/json"
 	"errors"
-	"github.com/v-starostin/go-metrics/internal/service"
 	"os"
 	"sync"
 
 	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
+	"github.com/v-starostin/go-metrics/internal/service"
 )
 
 type MemStorage struct {
