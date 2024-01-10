@@ -38,9 +38,9 @@ func main() {
 	if *cfg.Restore {
 		err := repo.RestoreFromFile()
 		if err != nil {
-			logger.Error().Err(err).Msg("Failed restore file")
+			logger.Error().Err(err).Msg("Failed restore storage from file")
 		}
-		logger.Info().Msg("Storage file has been restored")
+		logger.Info().Msg("Storage has been restored from file")
 	}
 
 	r := chi.NewRouter()
@@ -61,7 +61,7 @@ func main() {
 		Handler: r,
 	}
 
-	ch := make(chan struct{})
+	//ch := make(chan struct{})
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
@@ -78,23 +78,24 @@ func main() {
 					}
 				case <-ctx.Done():
 					ticker.Stop()
-					if err := repo.WriteToFile(); err != nil {
-						logger.Error().Err(err).Msg("Failed to write storage content to file")
-					}
-					ch <- struct{}{}
+					//if err := repo.WriteToFile(); err != nil {
+					//	logger.Error().Err(err).Msg("Failed to write storage content to file")
+					//}
+					//ch <- struct{}{}
 					break loop
 				}
 			}
 		}()
-	} else {
-		go func() {
-			<-ctx.Done()
-			if err := repo.WriteToFile(); err != nil {
-				logger.Error().Err(err).Msg("Failed to write storage content to file")
-			}
-			ch <- struct{}{}
-		}()
 	}
+	//else {
+	//go func() {
+	//	<-ctx.Done()
+	//	if err := repo.WriteToFile(); err != nil {
+	//		logger.Error().Err(err).Msg("Failed to write storage content to file")
+	//	}
+	//	ch <- struct{}{}
+	//}()
+	//}
 
 	go func() {
 		logger.Info().Msgf("Server is listerning on %s", cfg.ServerAddress)
@@ -103,13 +104,17 @@ func main() {
 		}
 	}()
 
-	<-ch
+	<-ctx.Done()
 	logger.Info().Msg("Shutdown signal received")
 
-	cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	if err := repo.WriteToFile(); err != nil {
+		logger.Error().Err(err).Msg("Failed to write storage content to file")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := server.Shutdown(cctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		logger.Fatal().Err(err).Msg("Shutdown server error")
 	}
 
