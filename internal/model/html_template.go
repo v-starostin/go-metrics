@@ -10,7 +10,7 @@ const HTMLTemplateString = `
     <h1>Metrics</h1>
     <ul>
     {{range .}}{{range .}}
-        <li>{{.ID}}: {{.Value}}{{.Delta}}</li>
+        <li>ID: {{.ID}}, Value: {{.Value}}, Delta: {{.Delta}}</li>
     {{end}}{{end}}
     </ul>
 </body>

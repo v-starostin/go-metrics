@@ -100,13 +100,13 @@ func (s *MemStorage) Store(m model.Metric) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	defer func() {
-		if s.interval == 0 {
+	if s.interval == 0 {
+		defer func() {
 			if err := s.WriteToFile(); err != nil {
 				s.logger.Error().Err(err).Msg("Failed to write storage content to file")
 			}
-		}
-	}()
+		}()
+	}
 
 	metrics, ok := s.data[m.MType]
 	if !ok {
