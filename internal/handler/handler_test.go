@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	mmock "github.com/stretchr/testify/mock"
 	"io"
 	"net/http"
@@ -226,7 +225,7 @@ func (suite *handlerTestSuite) TestHandlerGetAllOK() {
 	suite.NoError(err)
 
 	suite.Equal(http.StatusOK, res.StatusCode)
-	suite.Equal(expectedHTML, fmt.Sprintf("%s", resBody))
+	suite.Equal(expectedHTML, string(resBody))
 }
 
 func (suite *handlerTestSuite) TestHandlerGetAllInternalServerError() {
