@@ -1,13 +1,16 @@
 package main_test
 
 import (
+	"compress/gzip"
 	"context"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	mmock "github.com/stretchr/testify/mock"
 	"github.com/v-starostin/go-metrics/internal/mock"
 
@@ -22,13 +25,16 @@ func TestSendMetrics(t *testing.T) {
 	metrics := []model.AgentMetric{
 		{MType: "gauge", ID: "metric1", Value: float64(10)},
 	}
-	a := agent.New(&zerolog.Logger{}, client, metrics, "0.0.0.0:8080")
 	t.Run("good case", func(t *testing.T) {
 		res := &http.Response{
 			StatusCode: http.StatusOK,
 			Body:       io.NopCloser(strings.NewReader("test")),
 		}
-		client.On("Do", mmock.Anything).Return(res, nil)
-		a.SendMetrics1(ctx)
+		client.On("Do", mmock.Anything).Once().Return(res, nil)
+		pool := &sync.Pool{
+			New: func() any { return gzip.NewWriter(io.Discard) },
+		}
+		err := agent.SendMetrics(ctx, &zerolog.Logger{}, client, metrics, "0.0.0.0:8080", pool)
+		assert.NoError(t, err)
 	})
 }
