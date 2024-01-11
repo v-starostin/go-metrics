@@ -22,6 +22,87 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+//type Agent struct {
+//	l       *zerolog.Logger
+//	client  HTTPClient
+//	metrics []model.AgentMetric
+//	address string
+//	counter *int64
+//	gw      *gzip.Writer
+//	buf     *bytes.Buffer
+//}
+
+//func (a *Agent) SendMetrics1(ctx context.Context, metrics []model.AgentMetric) {
+//	wg := sync.WaitGroup{}
+//	wg.Add(len(metrics))
+//	//buf := &bytes.Buffer{}
+//
+//	for _, m := range metrics {
+//		m := m
+//		go func() {
+//			defer wg.Done()
+//			b, err := json.Marshal(m)
+//			if err != nil {
+//				a.l.Error().Err(err).Msg("NewRequestWithContext method error")
+//				return
+//			}
+//
+//			a.buf.Reset()
+//			a.gw.Reset(a.buf)
+
+//mu.Lock()
+//gw = pool.Get().(*gzip.Writer)
+//l.Info().Msgf("gw points to: %p", gw)
+//buf.Reset()
+//gw.Reset(buf)
+//l.Info().Msgf("buffer points to: %p", buf)
+//l.Info().Msgf("buffer's content: %s", (*buf).String())
+//n, err := gw.Write(b)
+//if err != nil {
+//	return
+//}
+//l.Info().Msgf("buffer's content: %s", (*buf).String())
+//gw.Close()
+//pool.Put(gw)
+//
+//var tempBuf = *buf
+//r, err := gzip.NewReader(&tempBuf)
+//if err != nil {
+//	l.Error().Err(err).Msg("NewReader func error")
+//	return
+//}
+
+//rr := &bytes.Buffer{}
+//rr.ReadFrom(r)
+//l.Info().Msgf("temp buffer's content: %s", (*rr).String())
+//
+//l.Info().Msgf("buffer's content: %s", (*buf).String())
+//
+//l.Info().
+//	Int("len of b", len(b)).
+//	Int("written bytes", n).
+//	Int("len of buf", len(buf.Bytes())).
+//	Send()
+
+//			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", address), buf)
+//			if err != nil {
+//				l.Error().Err(err).Msg("NewRequestWithContext method error")
+//				return
+//			}
+//			mu.Unlock()
+//			req.Header.Add("Content-Type", "application/json")
+//			req.Header.Add("Content-Encoding", "gzip")
+//			res, err := client.Do(req)
+//			if err != nil {
+//				l.Error().Err(err).Msg("Do method error")
+//				return
+//			}
+//			res.Body.Close()
+//		}()
+//	}
+//	wg.Wait()
+//}
+
 func SendMetrics(
 	ctx context.Context,
 	l *zerolog.Logger,
@@ -50,8 +131,8 @@ func SendMetrics(
 			mu.Lock()
 			gw = pool.Get().(*gzip.Writer)
 			l.Info().Msgf("gw points to: %p", gw)
-			buf.Reset()
 			gw.Reset(buf)
+			buf.Reset()
 			l.Info().Msgf("buffer points to: %p", buf)
 			l.Info().Msgf("buffer's content: %s", (*buf).String())
 			n, err := gw.Write(b)
