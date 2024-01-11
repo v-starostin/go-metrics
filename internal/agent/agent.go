@@ -49,10 +49,10 @@ func SendMetrics(
 
 			mu.Lock()
 			gw = pool.Get().(*gzip.Writer)
-			l.Info().Msgf("gw points to: %p", gw)
+			l.Info().Msgf("gw points to: %p", &gw)
 			buf.Reset()
 			gw.Reset(buf)
-			l.Info().Msgf("buffer points to: %p", buf)
+			l.Info().Msgf("buffer points to: %p", &buf)
 			l.Info().Msgf("buffer's content: %v", buf.String())
 			n, err := gw.Write(b)
 			if err != nil {
