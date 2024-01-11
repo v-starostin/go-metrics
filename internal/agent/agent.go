@@ -53,14 +53,26 @@ func SendMetrics(
 			buf.Reset()
 			gw.Reset(buf)
 			l.Info().Msgf("buffer points to: %p", buf)
-			l.Info().Msgf("buffer's content: %v", (*buf).String())
+			l.Info().Msgf("buffer's content: %s", (*buf).String())
 			n, err := gw.Write(b)
 			if err != nil {
 				return
 			}
-			l.Info().Msgf("buffer's content: %v", (*buf).String())
+			l.Info().Msgf("buffer's content: %s", (*buf).String())
 			gw.Close()
 			pool.Put(gw)
+
+			r, err := gzip.NewReader(buf)
+			if err != nil {
+				l.Error().Err(err).Msg("NewReader func error")
+				return
+			}
+
+			rr := &bytes.Buffer{}
+			rr.ReadFrom(r)
+			l.Info().Msgf("temp buffer's content: %s", (*rr).String())
+
+			l.Info().Msgf("buffer's content: %s", (*buf).String())
 
 			l.Info().
 				Int("len of b", len(b)).
