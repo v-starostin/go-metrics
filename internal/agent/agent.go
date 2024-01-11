@@ -30,24 +30,27 @@ func SendMetrics(
 	address string,
 	pool *sync.Pool,
 ) error {
+	var gw *gzip.Writer
+	mu := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	wg.Add(len(metrics))
+	buf := &bytes.Buffer{}
 
 	for _, m := range metrics {
 		m := m
 
 		go func() {
 			defer wg.Done()
-
 			b, err := json.Marshal(m)
 			if err != nil {
 				l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
 			}
 
-			buf := &bytes.Buffer{}
-			gw := pool.Get().(*gzip.Writer)
-			defer pool.Put(gw)
+			mu.Lock()
+			gw = pool.Get().(*gzip.Writer)
+			l.Info().Msgf("gw points to: %p", gw)
+			buf.Reset()
 			gw.Reset(buf)
 			l.Info().Msgf("buffer points to: %p", buf)
 			l.Info().Msgf("buffer's content: %v", buf.String())
@@ -57,6 +60,7 @@ func SendMetrics(
 			}
 			l.Info().Msgf("buffer's content: %v", buf.String())
 			gw.Close()
+			pool.Put(gw)
 
 			l.Info().
 				Int("len of b", len(b)).
@@ -69,6 +73,7 @@ func SendMetrics(
 				l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
 			}
+			mu.Unlock()
 			req.Header.Add("Content-Type", "application/json")
 			req.Header.Add("Content-Encoding", "gzip")
 			res, err := client.Do(req)
