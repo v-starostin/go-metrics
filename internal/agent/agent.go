@@ -62,7 +62,8 @@ func SendMetrics(
 			gw.Close()
 			pool.Put(gw)
 
-			r, err := gzip.NewReader(buf)
+			var tempBuf bytes.Buffer = *buf
+			r, err := gzip.NewReader(&tempBuf)
 			if err != nil {
 				l.Error().Err(err).Msg("NewReader func error")
 				return
