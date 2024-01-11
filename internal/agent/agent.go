@@ -22,15 +22,15 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-//type Agent struct {
-//	l       *zerolog.Logger
-//	client  HTTPClient
-//	metrics []model.AgentMetric
-//	address string
-//	counter *int64
-//	gw      *gzip.Writer
-//	buf     *bytes.Buffer
-//}
+type Agent struct {
+	l       *zerolog.Logger
+	client  HTTPClient
+	metrics []model.AgentMetric
+	address string
+	counter *int64
+	gw      *gzip.Writer
+	buf     *bytes.Buffer
+}
 
 //func (a *Agent) SendMetrics1(ctx context.Context, metrics []model.AgentMetric) {
 //	wg := sync.WaitGroup{}
@@ -72,18 +72,18 @@ type HTTPClient interface {
 //	return
 //}
 
-//rr := &bytes.Buffer{}
-//rr.ReadFrom(r)
-//l.Info().Msgf("temp buffer's content: %s", (*rr).String())
+//			rr := &bytes.Buffer{}
+//			rr.ReadFrom(r)
+//			l.Info().Msgf("temp buffer's content: %s", (*rr).String())
 //
-//l.Info().Msgf("buffer's content: %s", (*buf).String())
+//			l.Info().Msgf("buffer's content: %s", (*buf).String())
 //
-//l.Info().
-//	Int("len of b", len(b)).
-//	Int("written bytes", n).
-//	Int("len of buf", len(buf.Bytes())).
-//	Send()
-
+//			l.Info().
+//				Int("len of b", len(b)).
+//				Int("written bytes", n).
+//				Int("len of buf", len(buf.Bytes())).
+//				Send()
+//
 //			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", address), buf)
 //			if err != nil {
 //				l.Error().Err(err).Msg("NewRequestWithContext method error")
@@ -142,19 +142,6 @@ func SendMetrics(
 			l.Info().Msgf("buffer's content: %s", (*buf).String())
 			gw.Close()
 			pool.Put(gw)
-
-			var tempBuf = *buf
-			r, err := gzip.NewReader(&tempBuf)
-			if err != nil {
-				l.Error().Err(err).Msg("NewReader func error")
-				return
-			}
-
-			rr := &bytes.Buffer{}
-			rr.ReadFrom(r)
-			l.Info().Msgf("temp buffer's content: %s", (*rr).String())
-
-			l.Info().Msgf("buffer's content: %s", (*buf).String())
 
 			l.Info().
 				Int("len of b", len(b)).
