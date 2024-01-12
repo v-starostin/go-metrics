@@ -1,13 +1,10 @@
 package main
 
 import (
-	"compress/gzip"
 	"context"
-	"io"
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -22,7 +19,7 @@ func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	metrics := make([]model.AgentMetric, len(model.GaugeMetrics)+2)
-	counter := int64(0)
+	//counter := int64(0)
 	cfg, err := config.NewAgent()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Configuration error")
@@ -35,32 +32,29 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	pool := &sync.Pool{
-		New: func() any { return gzip.NewWriter(io.Discard) },
-	}
+	//pool := &sync.Pool{
+	//	New: func() any { return gzip.NewWriter(io.Discard) },
+	//}
 
 	logger.Info().
 		Int("pollInterval", cfg.PollInterval).
 		Int("reportInterval", cfg.ReportInterval).
 		Msg("Started collecting metrics")
 
+	a := agent.New(&logger, client, cfg.ServerAddress)
+
 loop:
 	for {
 		select {
 		case <-poll.C:
-			agent.CollectMetrics(metrics, &counter)
+			//agent.CollectMetrics(metrics, &counter)
+			a.CollectMetrics1(metrics)
 			logger.Info().Interface("metrics", metrics).Msg("Metrics collected")
 		case <-report.C:
-			if err := agent.SendMetrics(
-				ctx,
-				&logger,
-				client,
-				metrics,
-				cfg.ServerAddress,
-				pool,
-			); err != nil {
-				logger.Fatal().Err(err).Msg("Send metrics error")
-			}
+			//if err := agent.SendMetrics(ctx, &logger, client, metrics, cfg.ServerAddress, pool, ); err != nil {
+			//	logger.Fatal().Err(err).Msg("Send metrics error")
+			//}
+			a.SendMetrics1(ctx, metrics)
 			logger.Info().Interface("metrics", metrics).Msg("Metrics sent")
 		case <-ctx.Done():
 			logger.Info().Err(ctx.Err()).Send()
