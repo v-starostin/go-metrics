@@ -10,9 +10,9 @@ import (
 
 	"github.com/rs/zerolog"
 	mmock "github.com/stretchr/testify/mock"
-	"github.com/v-starostin/go-metrics/internal/mock"
 
 	"github.com/v-starostin/go-metrics/internal/agent"
+	"github.com/v-starostin/go-metrics/internal/mock"
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
@@ -31,7 +31,7 @@ func TestSendMetrics(t *testing.T) {
 			Body:       io.NopCloser(strings.NewReader("test")),
 		}
 		client.On("Do", mmock.Anything).Once().Return(res, nil)
-		a.SendMetrics1(ctx)
+		a.SendMetrics(ctx)
 		assert.Equal(t, metrics, a.Metrics)
 	})
 }

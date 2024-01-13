@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 

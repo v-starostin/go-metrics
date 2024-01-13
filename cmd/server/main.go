@@ -37,7 +37,7 @@ func main() {
 	if *cfg.Restore {
 		err := repo.RestoreFromFile()
 		if err != nil {
-			logger.Error().Err(err).Msg("Failed restore storage from file")
+			logger.Error().Err(err).Msg("Failed to restore storage from file")
 		}
 		logger.Info().Msg("Storage has been restored from file")
 	}

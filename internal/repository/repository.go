@@ -20,11 +20,11 @@ type MemStorage struct {
 	storageFileName string
 }
 
-func New(l *zerolog.Logger, i int, s string) *MemStorage {
+func New(logger *zerolog.Logger, interval int, file string) *MemStorage {
 	return &MemStorage{
-		logger:          l,
-		interval:        i,
-		storageFileName: s,
+		logger:          logger,
+		interval:        interval,
+		storageFileName: file,
 		data:            make(model.Data),
 	}
 }

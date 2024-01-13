@@ -46,7 +46,7 @@ func New(logger *zerolog.Logger, client HTTPClient, address string) *Agent {
 	}
 }
 
-func (a *Agent) SendMetrics1(ctx context.Context) {
+func (a *Agent) SendMetrics(ctx context.Context) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(a.Metrics))
 
@@ -96,7 +96,7 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 	wg.Wait()
 }
 
-func (a *Agent) CollectMetrics1() {
+func (a *Agent) CollectMetrics() {
 	*a.counter++
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)

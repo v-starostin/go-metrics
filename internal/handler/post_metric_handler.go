@@ -42,7 +42,6 @@ func (h *PostMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		delta, err := strconv.ParseInt(mvalue, 10, 0)
 		if err != nil {
 			writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
-			//return service.ErrParseMetric
 			return
 		}
 		m = model.Metric{
@@ -53,7 +52,6 @@ func (h *PostMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case service.TypeGauge:
 		value, err := strconv.ParseFloat(mvalue, 64)
 		if err != nil {
-			//return service.ErrParseMetric
 			writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
 			return
 		}

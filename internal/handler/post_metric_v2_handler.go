@@ -3,8 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"github.com/rs/zerolog"
-	"github.com/v-starostin/go-metrics/internal/model"
 	"net/http"
+
+	"github.com/v-starostin/go-metrics/internal/model"
 )
 
 type PostMetricV2 struct {
