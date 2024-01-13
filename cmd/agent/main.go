@@ -12,13 +12,12 @@ import (
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/config"
-	"github.com/v-starostin/go-metrics/internal/model"
 )
 
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	metrics := make([]model.AgentMetric, len(model.GaugeMetrics)+2)
+	//metrics := make([]model.AgentMetric, len(model.GaugeMetrics)+2)
 	//counter := int64(0)
 	cfg, err := config.NewAgent()
 	if err != nil {
@@ -47,15 +46,14 @@ loop:
 	for {
 		select {
 		case <-poll.C:
-			//agent.CollectMetrics(metrics, &counter)
-			a.CollectMetrics1(metrics)
-			logger.Info().Interface("metrics", metrics).Msg("Metrics collected")
+			a.CollectMetrics1()
+			logger.Info().Interface("metrics", a.Metrics).Msg("Metrics collected")
 		case <-report.C:
 			//if err := agent.SendMetrics(ctx, &logger, client, metrics, cfg.ServerAddress, pool, ); err != nil {
 			//	logger.Fatal().Err(err).Msg("Send metrics error")
 			//}
-			a.SendMetrics1(ctx, metrics)
-			logger.Info().Interface("metrics", metrics).Msg("Metrics sent")
+			a.SendMetrics1(ctx)
+			logger.Info().Interface("metrics", a.Metrics).Msg("Metrics sent")
 		case <-ctx.Done():
 			logger.Info().Err(ctx.Err()).Send()
 			poll.Stop()
