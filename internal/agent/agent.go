@@ -64,9 +64,10 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 			}
 
 			buf := &bytes.Buffer{}
-			//a.buf.Reset()
 			a.mu.Lock()
+			//a.buf.Reset()
 			a.gw.Reset(buf)
+			//a.buf.Reset()
 			n, err := a.gw.Write(b)
 			if err != nil {
 				return
@@ -91,16 +92,17 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 			//reqBody := req.Body
 			//reqBody.Close()
 
-			//r, err := gzip.NewReader(req.Body)
-			//if err != nil {
-			//	a.l.Error().Err(err).Msg("gzip.NewReader error")
-			//	return
-			//}
-			//
-			//reader := bytes.Buffer{}
-			//reader.ReadFrom(r)
+			r, err := gzip.NewReader(req.Body)
+			if err != nil {
+				a.l.Error().Err(err).Msg("gzip.NewReader error")
+				return
+			}
 
-			//a.l.Info().Msgf("request body is: %+v", reader.String())
+			reader := bytes.Buffer{}
+			reader.ReadFrom(r)
+			r.Close()
+
+			a.l.Info().Msgf("request body is: %+v", reader.String())
 
 			res, err := a.client.Do(req)
 			if err != nil {
