@@ -43,14 +43,7 @@ func (l *LogEntry) Panic(v any, stack []byte) {
 }
 
 func Decompress(l *zerolog.Logger) func(next http.Handler) http.Handler {
-	//pool := sync.Pool{
-	//	New: func() any { return new(gzip.Reader) },
-	//}
 	gr := new(gzip.Reader)
-	//gr, err := gzip.NewReader(nil)
-	//if err != nil {
-	//	l.Error().Msg("Error to create gzip reader")
-	//}
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -59,12 +52,6 @@ func Decompress(l *zerolog.Logger) func(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-
-			//gr, ok := pool.Get().(*gzip.Reader)
-			//if !ok {
-			//	l.Error().Msg("Error to get Reader")
-			//}
-			//defer pool.Put(gr)
 
 			if err := gr.Reset(r.Body); err != nil {
 				l.Error().Err(err).Msg("Reset gzip reader error")
