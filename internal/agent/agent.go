@@ -89,10 +89,10 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 			req.Header.Add("Content-Type", "application/json")
 			req.Header.Add("Content-Encoding", "gzip")
 
-			//reqBody := req.Body
-			//reqBody.Close()
+			reqBody := req.Body
+			reqBody.Close()
 
-			r, err := gzip.NewReader(req.Body)
+			r, err := gzip.NewReader(reqBody)
 			if err != nil {
 				a.l.Error().Err(err).Msg("gzip.NewReader error")
 				return
