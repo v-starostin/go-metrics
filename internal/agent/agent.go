@@ -85,6 +85,7 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 				a.l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
 			}
+			a.mu.Unlock()
 			req.Header.Add("Content-Type", "application/json")
 			req.Header.Add("Content-Encoding", "gzip")
 
@@ -109,7 +110,7 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 				return
 			}
 			res.Body.Close()
-			a.mu.Unlock()
+
 		}()
 	}
 	wg.Wait()
