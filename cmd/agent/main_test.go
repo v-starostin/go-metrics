@@ -2,13 +2,13 @@ package main_test
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	mmock "github.com/stretchr/testify/mock"
 
 	"github.com/v-starostin/go-metrics/internal/agent"

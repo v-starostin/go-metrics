@@ -40,10 +40,10 @@ loop:
 	for {
 		select {
 		case <-poll.C:
-			a.CollectMetrics1()
+			a.CollectMetrics()
 			logger.Info().Interface("metrics", a.Metrics).Msg("Metrics collected")
 		case <-report.C:
-			a.SendMetrics1(ctx)
+			a.SendMetrics(ctx)
 			logger.Info().Interface("metrics", a.Metrics).Msg("Metrics sent")
 		case <-ctx.Done():
 			logger.Info().Err(ctx.Err()).Send()
