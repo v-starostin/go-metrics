@@ -31,7 +31,7 @@ type Agent struct {
 	address string
 	counter *int64
 	gw      *gzip.Writer
-	//buf     *bytes.Buffer
+	buf     *bytes.Buffer
 }
 
 func New(l *zerolog.Logger, c HTTPClient, a string) *Agent {
@@ -44,7 +44,7 @@ func New(l *zerolog.Logger, c HTTPClient, a string) *Agent {
 		address: a,
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
-		//buf:     &bytes.Buffer{},
+		buf:     &bytes.Buffer{},
 		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+2),
 	}
 }
@@ -63,25 +63,24 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 				return
 			}
 
-			buf := &bytes.Buffer{}
+			//buf := &bytes.Buffer{}
 			a.mu.Lock()
-			//a.buf.Reset()
-			a.gw.Reset(buf)
-			//a.buf.Reset()
+			a.buf.Reset()
+			a.gw.Reset(a.buf)
+			a.buf.Reset()
 			n, err := a.gw.Write(b)
 			if err != nil {
 				return
 			}
 			a.gw.Close()
-			a.mu.Unlock()
 
 			a.l.Info().
 				Int("len of b", len(b)).
 				Int("written bytes", n).
-				Int("len of buf", len(buf.Bytes())).
+				Int("len of buf", len(a.buf.Bytes())).
 				Send()
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", a.address), buf)
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", a.address), a.buf)
 			if err != nil {
 				a.l.Error().Err(err).Msg("NewRequestWithContext method error")
 				return
@@ -89,20 +88,20 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 			req.Header.Add("Content-Type", "application/json")
 			req.Header.Add("Content-Encoding", "gzip")
 
-			reqBody := req.Body
-			reqBody.Close()
+			//reqBody := req.Body
+			//reqBody.Close()
 
-			r, err := gzip.NewReader(reqBody)
-			if err != nil {
-				a.l.Error().Err(err).Msg("gzip.NewReader error")
-				return
-			}
+			//r, err := gzip.NewReader(reqBody)
+			//if err != nil {
+			//	a.l.Error().Err(err).Msg("gzip.NewReader error")
+			//	return
+			//}
 
-			reader := bytes.Buffer{}
-			reader.ReadFrom(r)
-			r.Close()
+			//reader := bytes.Buffer{}
+			//reader.ReadFrom(r)
+			//r.Close()
 
-			a.l.Info().Msgf("request body is: %+v", reader.String())
+			//a.l.Info().Msgf("request body is: %+v", reader.String())
 
 			res, err := a.client.Do(req)
 			if err != nil {
@@ -110,6 +109,7 @@ func (a *Agent) SendMetrics1(ctx context.Context) {
 				return
 			}
 			res.Body.Close()
+			a.mu.Unlock()
 		}()
 	}
 	wg.Wait()
