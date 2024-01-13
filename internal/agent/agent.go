@@ -38,6 +38,7 @@ func New(l *zerolog.Logger, c HTTPClient, a string) *Agent {
 	counter := new(int64)
 	*counter = 0
 	return &Agent{
+		mu:      &sync.Mutex{},
 		l:       l,
 		client:  c,
 		address: a,
