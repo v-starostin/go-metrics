@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"os"
@@ -26,6 +27,17 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
+
+	db, err := sql.Open("postgres", cfg.DatabaseDNS)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("DB initializing error")
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		logger.Fatal().Err(err).Msg("DB pinging error")
+	}
+
 	repo := repository.New(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	srv := service.New(&logger, repo)
 	getMetricHandler := handler.NewGetMetric(&logger, srv)
@@ -53,6 +65,14 @@ func main() {
 		r.Method(http.MethodGet, "/", getMetricsHandler)
 		r.Method(http.MethodPost, "/update/", postMetricV2Handler)
 		r.Method(http.MethodPost, "/value/", getMetricV2Handler)
+		r.Method(http.MethodGet, "/ping", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if err := db.Ping(); err != nil {
+				logger.Error().Err(err).Msg("Pinging DB error")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+		}))
 	})
 
 	server := http.Server{
