@@ -29,6 +29,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
 
+	var db *sql.DB
 	if cfg.DatabaseDNS != "" {
 		db, err := sql.Open("pgx", cfg.DatabaseDNS)
 		if err != nil {
@@ -68,6 +69,9 @@ func main() {
 		r.Method(http.MethodPost, "/update/", postMetricV2Handler)
 		r.Method(http.MethodPost, "/value/", getMetricV2Handler)
 		r.Method(http.MethodGet, "/ping", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if db == nil {
+				return
+			}
 			if err := db.Ping(); err != nil {
 				logger.Error().Err(err).Msg("Pinging DB error")
 				w.WriteHeader(http.StatusInternalServerError)
