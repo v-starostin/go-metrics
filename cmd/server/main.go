@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	_ "github.com/jackc/pgx/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/config"
@@ -29,7 +29,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
 
-	db, err := sql.Open("postgres", cfg.DatabaseDNS)
+	db, err := sql.Open("pgx", cfg.DatabaseDNS)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("DB initializing error")
 	}
