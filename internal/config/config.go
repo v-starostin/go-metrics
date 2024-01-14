@@ -57,6 +57,9 @@ func NewServer() (Config, error) {
 	if config.FileStoragePath == "" {
 		config.FileStoragePath = flags.FileStoragePath
 	}
+	if config.DatabaseDNS == "" {
+		config.DatabaseDNS = flags.DatabaseDNS
+	}
 
 	return config, nil
 }
