@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/jackc/pgx/stdlib"
 	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/config"
