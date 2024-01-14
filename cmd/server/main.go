@@ -29,14 +29,15 @@ func main() {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
 
-	db, err := sql.Open("pgx", cfg.DatabaseDNS)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("DB initializing error")
-	}
-	defer db.Close()
-
-	if err := db.Ping(); err != nil {
-		logger.Fatal().Err(err).Msg("DB pinging error")
+	if cfg.DatabaseDNS != "" {
+		db, err := sql.Open("pgx", cfg.DatabaseDNS)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("DB initializing error")
+		}
+		defer db.Close()
+		if err := db.Ping(); err != nil {
+			logger.Fatal().Err(err).Msg("DB pinging error")
+		}
 	}
 
 	repo := repository.New(&logger, *cfg.StoreInterval, cfg.FileStoragePath)

@@ -80,7 +80,7 @@ func parseAgentFlags() Config {
 func parseServerFlags() Config {
 	serverAddress := flag.String("a", "localhost:8080", "address and port to run server")
 	fileStoragePath := flag.String("f", "/tmp/metrics-db.json", "file storage path")
-	databaseDSN := flag.String("d", "postgres://name:password@localhost:5432/metrics", "database DSN")
+	databaseDSN := flag.String("d", "", "database DSN")
 	restore := flag.Bool("r", true, "restore")
 	storeInterval := flag.Int("i", 300, "interval")
 	flag.Parse()
