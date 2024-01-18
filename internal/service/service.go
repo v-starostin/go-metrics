@@ -28,6 +28,8 @@ type Repository interface {
 	Load(mtype, mname string) *model.Metric
 	LoadAll() model.Data
 	Store(m model.Metric) bool
+	RestoreFromFile() error
+	WriteToFile() error
 }
 
 func New(l *zerolog.Logger, repo Repository) *Service {

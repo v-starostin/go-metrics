@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +13,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
 
@@ -39,9 +43,29 @@ func main() {
 		if err := db.Ping(); err != nil {
 			logger.Fatal().Err(err).Msg("DB pinging error")
 		}
+
+		instance, err := postgres.WithInstance(db, &postgres.Config{})
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		m, err := migrate.NewWithDatabaseInstance("file://db", "postgres", instance)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if err := m.Up(); err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
 
-	repo := repository.New(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
+	var repo service.Repository
+	if cfg.DatabaseDNS != "" {
+		repo = repository.NewDB()
+	} else {
+		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
+	}
 	srv := service.New(&logger, repo)
 	getMetricHandler := handler.NewGetMetric(&logger, srv)
 	getMetricsHandler := handler.NewGetMetrics(&logger, srv)
