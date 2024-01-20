@@ -52,6 +52,24 @@ func (_m *Repository) LoadAll() model.Data {
 	return r0
 }
 
+// RestoreFromFile provides a mock function with given fields:
+func (_m *Repository) RestoreFromFile() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for RestoreFromFile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Store provides a mock function with given fields: m
 func (_m *Repository) Store(m model.Metric) bool {
 	ret := _m.Called(m)
@@ -65,6 +83,24 @@ func (_m *Repository) Store(m model.Metric) bool {
 		r0 = rf(m)
 	} else {
 		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// WriteToFile provides a mock function with given fields:
+func (_m *Repository) WriteToFile() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for WriteToFile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
 	}
 
 	return r0
