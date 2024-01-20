@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,8 +12,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
@@ -33,9 +30,12 @@ func main() {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
 
+	cfg.DatabaseDNS = "postgres://postgres:postgres@localhost:5432/metrics"
+
 	var db *sql.DB
+
 	if cfg.DatabaseDNS != "" {
-		db, err := sql.Open("pgx", cfg.DatabaseDNS)
+		db, err = sql.Open("pgx", cfg.DatabaseDNS)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("DB initializing error")
 		}
@@ -44,25 +44,25 @@ func main() {
 			logger.Fatal().Err(err).Msg("DB pinging error")
 		}
 
-		instance, err := postgres.WithInstance(db, &postgres.Config{})
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		m, err := migrate.NewWithDatabaseInstance("file://db", "postgres", instance)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		if err := m.Up(); err != nil {
-			fmt.Println(err)
-			return
-		}
+		//instance, err := postgres.WithInstance(db, &postgres.Config{})
+		//if err != nil {
+		//	fmt.Println(err)
+		//	return
+		//}
+		//m, err := migrate.NewWithDatabaseInstance("file://db", "postgres", instance)
+		//if err != nil {
+		//	fmt.Println(err)
+		//	return
+		//}
+		//if err := m.Up(); err != nil {
+		//	fmt.Println(err)
+		//	return
+		//}
 	}
 
 	var repo service.Repository
 	if cfg.DatabaseDNS != "" {
-		repo = repository.NewDB()
+		repo = repository.NewDB(db)
 	} else {
 		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	}
