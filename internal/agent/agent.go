@@ -96,6 +96,46 @@ func (a *Agent) SendMetrics(ctx context.Context) {
 	wg.Wait()
 }
 
+func (a *Agent) SendMetrics1(ctx context.Context) {
+	b, err := json.Marshal(a.Metrics)
+	if err != nil {
+		a.logger.Error().Err(err).Msg("Marshalling error")
+		return
+	}
+	a.logger.Info().Any("json", string(b)).Msg("Marshalled")
+
+	buf := &bytes.Buffer{}
+	a.gw.Reset(buf)
+	n, err := a.gw.Write(b)
+	if err != nil {
+		a.logger.Error().Err(err).Msg("gw.Write error")
+		return
+	}
+	a.gw.Close()
+
+	a.logger.Info().
+		Int("len of b", len(b)).
+		Int("written bytes", n).
+		Int("len of buf", len(buf.Bytes())).
+		Send()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/updates/", a.address), buf)
+	if err != nil {
+		a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
+		return
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Encoding", "gzip")
+
+	res, err := a.client.Do(req)
+	if err != nil {
+		a.logger.Error().Err(err).Msg("client.Do method error")
+		return
+	}
+	res.Body.Close()
+	a.logger.Info().Any("metric", a.Metrics).Msg("Metrics are sent")
+}
+
 func (a *Agent) CollectMetrics() {
 	*a.counter++
 	var memStats runtime.MemStats
