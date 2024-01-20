@@ -88,6 +88,24 @@ func (_m *Repository) Store(m model.Metric) bool {
 	return r0
 }
 
+// StoreMetrics provides a mock function with given fields: m
+func (_m *Repository) StoreMetrics(m []model.Metric) bool {
+	ret := _m.Called(m)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StoreMetrics")
+	}
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func([]model.Metric) bool); ok {
+		r0 = rf(m)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
 // WriteToFile provides a mock function with given fields:
 func (_m *Repository) WriteToFile() error {
 	ret := _m.Called()

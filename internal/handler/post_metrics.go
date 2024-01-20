@@ -9,22 +9,20 @@ import (
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
-type PostMetricV2 struct {
+type PostMetrics struct {
 	logger  *zerolog.Logger
 	service Service
 }
 
-func NewPostMetricV2(l *zerolog.Logger, srv Service) *PostMetricV2 {
-	return &PostMetricV2{
+func NewPostMetrics(l *zerolog.Logger, srv Service) *PostMetrics {
+	return &PostMetrics{
 		logger:  l,
 		service: srv,
 	}
 }
 
-func (h *PostMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info().Any("req", r.Body).Msg("Request body")
-
-	var req model.Metric
+func (h *PostMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var req []model.Metric
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error().Err(err).Msg("Invalid incoming data")
 		writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
@@ -32,7 +30,7 @@ func (h *PostMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logger.Info().Any("req", req).Msg("Decoded request body")
 
-	if err := h.service.SaveMetric(req); err != nil {
+	if err := h.service.SaveMetrics(req); err != nil {
 		h.logger.Error().Err(err).Msg("SaveMetric method error")
 		writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 		return

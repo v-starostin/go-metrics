@@ -28,6 +28,7 @@ type Repository interface {
 	Load(mtype, mname string) *model.Metric
 	LoadAll() model.Data
 	Store(m model.Metric) bool
+	StoreMetrics(m []model.Metric) bool
 	RestoreFromFile() error
 	WriteToFile() error
 }
@@ -67,6 +68,20 @@ func (s *Service) SaveMetric(m model.Metric) error {
 		return ErrStoreData
 	}
 	logger.Info().Msg("Metric is stored")
+
+	return nil
+}
+
+func (s *Service) SaveMetrics(m []model.Metric) error {
+	//logger := s.logger.With().
+	//	Str("type", m.MType).
+	//	Str("name", m.ID).
+	//	Logger()
+
+	if ok := s.repo.StoreMetrics(m); !ok {
+		return ErrStoreData
+	}
+	s.logger.Info().Msg("Metric is stored")
 
 	return nil
 }

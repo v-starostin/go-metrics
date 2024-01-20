@@ -132,3 +132,7 @@ func (s *MemStorage) Store(m model.Metric) bool {
 
 	return true
 }
+
+func (s *MemStorage) StoreMetrics(metrics []model.Metric) bool {
+	return false
+}

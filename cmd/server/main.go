@@ -72,6 +72,7 @@ func main() {
 	getMetricV2Handler := handler.NewGetMetricV2(&logger, srv)
 	postMetricHandler := handler.NewPostMetric(&logger, srv)
 	postMetricV2Handler := handler.NewPostMetricV2(&logger, srv)
+	postMetrics := handler.NewPostMetrics(&logger, srv)
 
 	if *cfg.Restore {
 		err := repo.RestoreFromFile()
@@ -90,6 +91,7 @@ func main() {
 		r.Method(http.MethodPost, "/update/{type}/{name}/{value}", postMetricHandler)
 		r.Method(http.MethodGet, "/value/{type}/{name}", getMetricHandler)
 		r.Method(http.MethodGet, "/", getMetricsHandler)
+		r.Method(http.MethodPost, "/updates/", postMetrics)
 		r.Method(http.MethodPost, "/update/", postMetricV2Handler)
 		r.Method(http.MethodPost, "/value/", getMetricV2Handler)
 		r.Method(http.MethodGet, "/ping", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

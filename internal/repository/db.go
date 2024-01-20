@@ -78,6 +78,17 @@ func (db *DB) LoadAll() model.Data {
 	return result
 }
 
+func (db *DB) StoreMetrics(metrics []model.Metric) bool {
+	var stored bool
+	for _, metric := range metrics {
+		stored = db.Store(metric)
+		if !stored {
+			return false
+		}
+	}
+	return true
+}
+
 func (db *DB) Store(m model.Metric) bool {
 	var mID, mType string
 	var mDelta sql.NullInt64
@@ -136,7 +147,6 @@ func (db *DB) Store(m model.Metric) bool {
 			m.ID, m.MType, *m.Delta,
 		)
 	}
-
 	if err != nil {
 		return false
 	}
