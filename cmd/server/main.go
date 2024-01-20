@@ -33,7 +33,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
 
-	cfg.DatabaseDNS = "postgres://postgres:postgres@localhost:5432/metrics"
+	//cfg.DatabaseDNS = "postgres://postgres:postgres@localhost:5432/metrics"
 
 	var db *sql.DB
 
