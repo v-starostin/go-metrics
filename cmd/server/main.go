@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -49,16 +49,16 @@ func main() {
 
 		instance, err := postgres.WithInstance(db, &postgres.Config{})
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 		m, err := migrate.NewWithDatabaseInstance("file://db", "postgres", instance)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 		if err := m.Up(); err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 	}
