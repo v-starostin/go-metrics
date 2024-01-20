@@ -57,10 +57,7 @@ func main() {
 			log.Println(err)
 			return
 		}
-		if err := m.Up(); err != nil {
-			log.Println(err)
-			return
-		}
+		m.Up()
 	}
 
 	var repo service.Repository
