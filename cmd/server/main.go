@@ -33,10 +33,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("Configuration error")
 	}
 
-	//cfg.DatabaseDNS = "postgres://postgres:postgres@localhost:5432/metrics"
-
 	var db *sql.DB
-
 	if cfg.DatabaseDNS != "" {
 		db, err = sql.Open("pgx", cfg.DatabaseDNS)
 		if err != nil {
@@ -57,7 +54,9 @@ func main() {
 			log.Println(err)
 			return
 		}
-		m.Up()
+		if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+			return
+		}
 	}
 
 	var repo service.Repository
@@ -73,6 +72,7 @@ func main() {
 	postMetricHandler := handler.NewPostMetric(&logger, srv)
 	postMetricV2Handler := handler.NewPostMetricV2(&logger, srv)
 	postMetrics := handler.NewPostMetrics(&logger, srv)
+	pingDB := handler.DBPing(&logger, db)
 
 	if *cfg.Restore {
 		err := repo.RestoreFromFile()
@@ -94,17 +94,7 @@ func main() {
 		r.Method(http.MethodPost, "/updates/", postMetrics)
 		r.Method(http.MethodPost, "/update/", postMetricV2Handler)
 		r.Method(http.MethodPost, "/value/", getMetricV2Handler)
-		r.Method(http.MethodGet, "/ping", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if db == nil {
-				return
-			}
-			if err := db.Ping(); err != nil {
-				logger.Error().Err(err).Msg("Pinging DB error")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-		}))
+		r.Method(http.MethodGet, "/ping", pingDB)
 	})
 
 	server := http.Server{

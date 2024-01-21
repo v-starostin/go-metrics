@@ -80,16 +80,101 @@ func (db *DB) LoadAll() model.Data {
 
 func (db *DB) StoreMetrics(metrics []model.Metric) bool {
 	var stored bool
+	tx, _ := db.Begin()
 	for _, metric := range metrics {
-		stored = db.Store(metric)
+		stored = store(tx, metric)
 		if !stored {
+			tx.Rollback()
 			return false
 		}
 	}
+	tx.Commit()
+	return true
+}
+
+func store(tx *sql.Tx, m model.Metric) bool {
+	var mID, mType string
+	var mDelta sql.NullInt64
+
+	raw := tx.QueryRow("SELECT id, type, delta FROM metrics WHERE id = $1 AND type = $2", m.ID, m.MType)
+	if err := raw.Scan(&mID, &mType, &mDelta); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return false
+	}
+
+	if mID != "" && m.MType == service.TypeCounter {
+		result, err := tx.Exec(
+			"UPDATE metrics SET delta = $1 WHERE id = $2 AND type = $3",
+			mDelta.Int64+*m.Delta, m.ID, m.MType,
+		)
+		if err != nil {
+			return false
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return false
+		}
+		if affected != 1 {
+			return false
+		}
+		return true
+	}
+
+	if mID != "" && m.MType == service.TypeGauge {
+		result, err := tx.Exec(
+			"UPDATE metrics SET value = $1 WHERE id = $2 AND type = $3",
+			m.Value, m.ID, m.MType,
+		)
+		if err != nil {
+			return false
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return false
+		}
+		if affected != 1 {
+			return false
+		}
+		return true
+	}
+
+	var result sql.Result
+	var err error
+	if m.MType == service.TypeGauge {
+		result, err = tx.Exec(
+			"INSERT INTO metrics (id, type, value) VALUES ($1,$2,$3)",
+			m.ID, m.MType, *m.Value,
+		)
+	} else {
+		result, err = tx.Exec(
+			"INSERT INTO metrics (id, type, delta) VALUES ($1,$2,$3)",
+			m.ID, m.MType, *m.Delta,
+		)
+	}
+	if err != nil {
+		return false
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false
+	}
+	if affected != 1 {
+		return false
+	}
+
 	return true
 }
 
 func (db *DB) Store(m model.Metric) bool {
+	tx, _ := db.Begin()
+	if stored := store(tx, m); !stored {
+		tx.Rollback()
+		return false
+	}
+	tx.Commit()
+	return true
+}
+
+func (db *DB) Store1(m model.Metric) bool {
 	var mID, mType string
 	var mDelta sql.NullInt64
 
