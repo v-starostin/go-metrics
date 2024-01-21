@@ -45,10 +45,7 @@ func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
 	var m *model.Metric
 	err := s.Retry(3, func() bool {
 		m = s.repo.Load(mtype, mname)
-		if m != nil {
-			return true
-		}
-		return false
+		return m != nil
 	}, 1*time.Second, 3*time.Second, 5*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load metric %s", mname)
@@ -61,10 +58,7 @@ func (s *Service) GetMetrics() (model.Data, error) {
 	var m model.Data
 	err := s.Retry(3, func() bool {
 		m = s.repo.LoadAll()
-		if m != nil {
-			return true
-		}
-		return false
+		return m != nil
 	}, 1*time.Second, 3*time.Second, 5*time.Second)
 	if err != nil {
 		return nil, errors.New("failed to load metrics")

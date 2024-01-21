@@ -157,18 +157,31 @@ func (a *Agent) CollectMetrics() {
 	a.Metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter}
 }
 
-func (a *Agent) Retry(maxRetries int, fn func() error, intervals ...time.Duration) error {
+func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error, intervals ...time.Duration) error {
 	var err error
-	err = fn()
+	err = fn(ctx)
 	if err == nil {
 		return nil
 	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	for i := 0; i < maxRetries; i++ {
 		a.logger.Info().Msgf("Retrying... (Attempt %d)", i+1)
-		time.Sleep(intervals[i])
-		if err = fn(); err == nil {
-			return nil
+
+		t := time.NewTimer(intervals[i])
+		select {
+		case <-t.C:
+			if err = fn(ctx); err == nil {
+				return nil
+			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
+
 	}
 	a.logger.Error().Err(err).Msg("Retrying... Failed")
 	return err
