@@ -61,7 +61,7 @@ func main() {
 
 	var repo service.Repository
 	if cfg.DatabaseDNS != "" {
-		repo = repository.NewDB(db)
+		repo = repository.NewStorage(&logger, db)
 	} else {
 		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	}

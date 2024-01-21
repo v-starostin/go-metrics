@@ -3,7 +3,8 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"log"
+
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -11,21 +12,26 @@ import (
 
 var errNotSupported = errors.New("not supported when DB is enabled")
 
-type DB struct {
-	*sql.DB
+type Storage struct {
+	db     *sql.DB
+	logger *zerolog.Logger
 }
 
-func NewDB(db *sql.DB) *DB {
-	return &DB{db}
+func NewStorage(logger *zerolog.Logger, db *sql.DB) *Storage {
+	return &Storage{
+		logger: logger,
+		db:     db,
+	}
 }
 
-func (db *DB) Load(mtype, mname string) *model.Metric {
+func (s *Storage) Load(mtype, mname string) *model.Metric {
 	var mID, mType string
 	var mValue sql.NullFloat64
 	var mDelta sql.NullInt64
 
-	row := db.QueryRow("SELECT id, type, value, delta FROM metrics WHERE type = $1 AND id = $2", mtype, mname)
+	row := s.db.QueryRow("SELECT id, type, value, delta FROM metrics WHERE type = $1 AND id = $2", mtype, mname)
 	if err := row.Scan(&mID, &mType, &mValue, &mDelta); err != nil {
+		s.logger.Error().Err(err).Msg("Load method error")
 		return nil
 	}
 
@@ -37,9 +43,10 @@ func (db *DB) Load(mtype, mname string) *model.Metric {
 	}
 }
 
-func (db *DB) LoadAll() model.Data {
-	rows, err := db.Query("SELECT id,type,value,delta FROM metrics")
+func (s *Storage) LoadAll() model.Data {
+	rows, err := s.db.Query("SELECT id,type,value,delta FROM metrics")
 	if err != nil {
+		s.logger.Error().Err(err).Msg("LoadAll: select statement error")
 		return nil
 	}
 	defer rows.Close()
@@ -51,6 +58,7 @@ func (db *DB) LoadAll() model.Data {
 		var mDelta sql.NullInt64
 
 		if err := rows.Scan(&mID, &mType, &mValue, &mDelta); err != nil {
+			s.logger.Error().Err(err).Msg("LoadAll: scan rows error")
 			return nil
 		}
 		_, ok := result[mType]
@@ -73,198 +81,108 @@ func (db *DB) LoadAll() model.Data {
 		}
 	}
 	if err := rows.Err(); err != nil {
+		s.logger.Error().Err(err).Msg("LoadAll method error")
 		return nil
 	}
 
 	return result
 }
 
-func (db *DB) StoreMetrics(metrics []model.Metric) bool {
+func (s *Storage) StoreMetrics(metrics []model.Metric) bool {
 	var stored bool
-	tx, err := db.Begin()
+
+	tx, err := s.db.Begin()
 	if err != nil {
-		log.Println("StoreMetrics err :", err.Error())
+		s.logger.Error().Err(err).Msg("StoreMetrics: begin transaction error")
 		return false
 	}
+
 	for _, metric := range metrics {
-		stored = store(tx, metric)
+		stored = store(tx, s.logger, metric)
 		if !stored {
-			log.Println("Failed to store data")
+			s.logger.Error().Err(err).Msg("StoreMetrics: store data error")
 			tx.Rollback()
 			return false
 		}
 	}
+
 	if err := tx.Commit(); err != nil {
-		log.Println("Error to commit transaction", err.Error())
+		s.logger.Error().Err(err).Msg("StoreMetrics: commit transaction error")
+		return false
 	}
+
 	return true
 }
 
-func store(tx *sql.Tx, m model.Metric) bool {
-	log.Printf("metric: %+v\n", m)
+func store(tx *sql.Tx, logger *zerolog.Logger, m model.Metric) bool {
+	logger.Info().Any("metric", m).Send()
+
 	var mID, mType string
 	var mDelta sql.NullInt64
 
 	raw := tx.QueryRow("SELECT id, type, delta FROM metrics WHERE id = $1 AND type = $2", m.ID, m.MType)
-	if err := raw.Scan(&mID, &mType, &mDelta); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.Println("[1] err:", err.Error())
+	err := raw.Scan(&mID, &mType, &mDelta)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		logger.Error().Err(err).Msg("store: scan row error")
 		return false
 	}
 
-	if mID != "" && m.MType == service.TypeCounter {
-		result, err := tx.Exec(
-			"UPDATE metrics SET delta = $1 WHERE id = $2 AND type = $3",
-			mDelta.Int64+*m.Delta, m.ID, m.MType,
-		)
+	if m.MType == service.TypeCounter {
+		switch {
+		case mID != "":
+			_, err = tx.Exec(
+				"UPDATE metrics SET delta = $1 WHERE id = $2 AND type = $3",
+				mDelta.Int64+*m.Delta, m.ID, m.MType,
+			)
+		default:
+			_, err = tx.Exec(
+				"INSERT INTO metrics (id, type, delta) VALUES ($1,$2,$3)",
+				m.ID, m.MType, *m.Delta,
+			)
+		}
 		if err != nil {
-			log.Println("[2] err:", err.Error())
+			logger.Error().Err(err).Msg("store: error to store counter")
 			return false
 		}
-		affected, err := result.RowsAffected()
-		if err != nil {
-			log.Println("[3] err:", err.Error())
-			return false
-		}
-		if affected != 1 {
-			return false
-		}
-		return true
 	}
 
-	if mID != "" && m.MType == service.TypeGauge {
-		result, err := tx.Exec(
-			"UPDATE metrics SET value = $1 WHERE id = $2 AND type = $3",
-			m.Value, m.ID, m.MType,
-		)
-		if err != nil {
-			log.Println("[4] err:", err.Error())
-			return false
-		}
-		affected, err := result.RowsAffected()
-		if err != nil {
-			return false
-		}
-		if affected != 1 {
-			return false
-		}
-		return true
-	}
-
-	var result sql.Result
-	var err error
 	if m.MType == service.TypeGauge {
-		result, err = tx.Exec(
-			"INSERT INTO metrics (id, type, value) VALUES ($1,$2,$3)",
-			m.ID, m.MType, *m.Value,
-		)
-	} else {
-		result, err = tx.Exec(
-			"INSERT INTO metrics (id, type, delta) VALUES ($1,$2,$3)",
-			m.ID, m.MType, *m.Delta,
-		)
-	}
-	if err != nil {
-		log.Println("[6] err:", err.Error())
-		return false
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return false
-	}
-	if affected != 1 {
-		return false
+		switch {
+		case mID != "":
+			_, err = tx.Exec(
+				"UPDATE metrics SET value = $1 WHERE id = $2 AND type = $3",
+				m.Value, m.ID, m.MType,
+			)
+		default:
+			_, err = tx.Exec(
+				"INSERT INTO metrics (id, type, value) VALUES ($1,$2,$3)",
+				m.ID, m.MType, *m.Value,
+			)
+		}
+		if err != nil {
+			logger.Error().Err(err).Msg("store: error to store gauge")
+			return false
+		}
 	}
 
 	return true
 }
 
-func (db *DB) Store(m model.Metric) bool {
-	tx, err := db.Begin()
+func (s *Storage) Store(m model.Metric) bool {
+	tx, err := s.db.Begin()
 	if err != nil {
-		log.Println("store err:", err.Error())
+		s.logger.Error().Err(err).Msg("Store: begin transaction error")
 		return false
 	}
-	if stored := store(tx, m); !stored {
-		log.Println("store err")
+	if stored := store(tx, s.logger, m); !stored {
+		s.logger.Error().Err(err).Msg("Store: store data error")
 		tx.Rollback()
 		return false
 	}
 	if err := tx.Commit(); err != nil {
-		log.Println("Error to commit transaction", err.Error())
+		s.logger.Error().Err(err).Msg("Store: commit transaction error")
 		return false
 	}
-	return true
-}
-
-func (db *DB) Store1(m model.Metric) bool {
-	var mID, mType string
-	var mDelta sql.NullInt64
-
-	raw := db.QueryRow("SELECT id, type, delta FROM metrics WHERE id = $1 AND type = $2", m.ID, m.MType)
-	if err := raw.Scan(&mID, &mType, &mDelta); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false
-	}
-
-	if mID != "" && m.MType == service.TypeCounter {
-		result, err := db.Exec(
-			"UPDATE metrics SET delta = $1 WHERE id = $2 AND type = $3",
-			mDelta.Int64+*m.Delta, m.ID, m.MType,
-		)
-		if err != nil {
-			return false
-		}
-		affected, err := result.RowsAffected()
-		if err != nil {
-			return false
-		}
-		if affected != 1 {
-			return false
-		}
-		return true
-	}
-
-	if mID != "" && m.MType == service.TypeGauge {
-		result, err := db.Exec(
-			"UPDATE metrics SET value = $1 WHERE id = $2 AND type = $3",
-			m.Value, m.ID, m.MType,
-		)
-		if err != nil {
-			return false
-		}
-		affected, err := result.RowsAffected()
-		if err != nil {
-			return false
-		}
-		if affected != 1 {
-			return false
-		}
-		return true
-	}
-
-	var result sql.Result
-	var err error
-	if m.MType == service.TypeGauge {
-		result, err = db.Exec(
-			"INSERT INTO metrics (id, type, value) VALUES ($1,$2,$3)",
-			m.ID, m.MType, *m.Value,
-		)
-	} else {
-		result, err = db.Exec(
-			"INSERT INTO metrics (id, type, delta) VALUES ($1,$2,$3)",
-			m.ID, m.MType, *m.Delta,
-		)
-	}
-	if err != nil {
-		return false
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return false
-	}
-	if affected != 1 {
-		return false
-	}
-
 	return true
 }
 
@@ -282,10 +200,10 @@ func parseValue(v sql.NullFloat64) *float64 {
 	return nil
 }
 
-func (db *DB) RestoreFromFile() error {
+func (s *Storage) RestoreFromFile() error {
 	return errNotSupported
 }
 
-func (db *DB) WriteToFile() error {
+func (s *Storage) WriteToFile() error {
 	return errNotSupported
 }
