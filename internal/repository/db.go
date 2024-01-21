@@ -83,7 +83,7 @@ func (db *DB) StoreMetrics(metrics []model.Metric) bool {
 	var stored bool
 	tx, err := db.Begin()
 	if err != nil {
-		log.Println("StoreMetrics err:", err.Error())
+		log.Println("StoreMetrics err :", err.Error())
 		return false
 	}
 	for _, metric := range metrics {
