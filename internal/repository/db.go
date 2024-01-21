@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"log"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -80,15 +81,22 @@ func (db *DB) LoadAll() model.Data {
 
 func (db *DB) StoreMetrics(metrics []model.Metric) bool {
 	var stored bool
-	tx, _ := db.Begin()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Println("StoreMetrics err:", err.Error())
+		return false
+	}
 	for _, metric := range metrics {
 		stored = store(tx, metric)
 		if !stored {
+			log.Println("Failed to store data")
 			tx.Rollback()
 			return false
 		}
 	}
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		log.Println("Error to commit transaction", err.Error())
+	}
 	return true
 }
 
@@ -165,12 +173,20 @@ func store(tx *sql.Tx, m model.Metric) bool {
 }
 
 func (db *DB) Store(m model.Metric) bool {
-	tx, _ := db.Begin()
+	tx, err := db.Begin()
+	if err != nil {
+		log.Println("store err:", err.Error())
+		return false
+	}
 	if stored := store(tx, m); !stored {
+		log.Println("store err")
 		tx.Rollback()
 		return false
 	}
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		log.Println("Error to commit transaction", err.Error())
+		return false
+	}
 	return true
 }
 
