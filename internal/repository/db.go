@@ -101,6 +101,7 @@ func (db *DB) StoreMetrics(metrics []model.Metric) bool {
 }
 
 func store(tx *sql.Tx, m model.Metric) bool {
+	log.Printf("metric: %+v\n", m)
 	var mID, mType string
 	var mDelta sql.NullInt64
 
