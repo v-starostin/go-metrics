@@ -106,6 +106,7 @@ func store(tx *sql.Tx, m model.Metric) bool {
 
 	raw := tx.QueryRow("SELECT id, type, delta FROM metrics WHERE id = $1 AND type = $2", m.ID, m.MType)
 	if err := raw.Scan(&mID, &mType, &mDelta); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Println("[1] err:", err.Error())
 		return false
 	}
 
@@ -115,10 +116,12 @@ func store(tx *sql.Tx, m model.Metric) bool {
 			mDelta.Int64+*m.Delta, m.ID, m.MType,
 		)
 		if err != nil {
+			log.Println("[2] err:", err.Error())
 			return false
 		}
 		affected, err := result.RowsAffected()
 		if err != nil {
+			log.Println("[3] err:", err.Error())
 			return false
 		}
 		if affected != 1 {
@@ -133,6 +136,7 @@ func store(tx *sql.Tx, m model.Metric) bool {
 			m.Value, m.ID, m.MType,
 		)
 		if err != nil {
+			log.Println("[4] err:", err.Error())
 			return false
 		}
 		affected, err := result.RowsAffected()
@@ -159,6 +163,7 @@ func store(tx *sql.Tx, m model.Metric) bool {
 		)
 	}
 	if err != nil {
+		log.Println("[6] err:", err.Error())
 		return false
 	}
 	affected, err := result.RowsAffected()
