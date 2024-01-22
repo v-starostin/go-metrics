@@ -25,10 +25,10 @@ type Service struct {
 }
 
 type Repository interface {
-	Load(mtype, mname string) *model.Metric
-	LoadAll() model.Data
-	Store(m model.Metric) bool
-	StoreMetrics(m []model.Metric) bool
+	Load(mtype, mname string) (*model.Metric, error)
+	LoadAll() (model.Data, error)
+	Store(m model.Metric) error
+	StoreMetrics(m []model.Metric) error
 	RestoreFromFile() error
 	WriteToFile() error
 }
@@ -41,18 +41,18 @@ func New(l *zerolog.Logger, repo Repository) *Service {
 }
 
 func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
-	m := s.repo.Load(mtype, mname)
-	if m == nil {
-		return nil, fmt.Errorf("failed to load metric %s", mname)
+	m, err := s.repo.Load(mtype, mname)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load metric %s: %w", mname, err)
 	}
 
 	return m, nil
 }
 
 func (s *Service) GetMetrics() (model.Data, error) {
-	m := s.repo.LoadAll()
-	if m == nil {
-		return nil, errors.New("failed to load metrics")
+	m, err := s.repo.LoadAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load metrics: %w", err)
 	}
 
 	return m, nil
@@ -64,8 +64,8 @@ func (s *Service) SaveMetric(m model.Metric) error {
 		Str("name", m.ID).
 		Logger()
 
-	if ok := s.repo.Store(m); !ok {
-		return ErrStoreData
+	if err := s.repo.Store(m); err != nil {
+		return fmt.Errorf("failed to store data: %w", err)
 	}
 	logger.Info().Msg("Metric is stored")
 
@@ -73,8 +73,8 @@ func (s *Service) SaveMetric(m model.Metric) error {
 }
 
 func (s *Service) SaveMetrics(m []model.Metric) error {
-	if ok := s.repo.StoreMetrics(m); !ok {
-		return ErrStoreData
+	if err := s.repo.StoreMetrics(m); err != nil {
+		return fmt.Errorf("failed to store data: %w", err)
 	}
 	s.logger.Info().Msg("Metric is stored")
 

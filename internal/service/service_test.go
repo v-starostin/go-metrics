@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -36,6 +37,7 @@ func (suite *serviceTestSuite) TestMetric() {
 		name        string
 		expected    *model.Metric
 		metric      *model.Metric
+		err         error
 		expectedErr string
 	}{
 		{
@@ -46,13 +48,14 @@ func (suite *serviceTestSuite) TestMetric() {
 		{
 			name:        "bad case",
 			metric:      &model.Metric{MType: "gauge", ID: "metric1", Value: f},
-			expectedErr: "failed to load metric metric1",
+			err:         errors.New("err"),
+			expectedErr: "failed to load metric metric1: err",
 		},
 	}
 
 	for _, test := range tt {
 		suite.Run(test.name, func() {
-			suite.repo.On("Load", test.metric.MType, test.metric.ID).Once().Return(test.expected)
+			suite.repo.On("Load", test.metric.MType, test.metric.ID).Once().Return(test.metric, test.err)
 
 			got, err := suite.service.GetMetric(test.metric.MType, test.metric.ID)
 			if err != nil {
@@ -78,6 +81,7 @@ func (suite *serviceTestSuite) TestMetrics() {
 
 	tt := []struct {
 		name        string
+		err         error
 		expectedErr string
 		expected    model.Data
 	}{
@@ -87,13 +91,14 @@ func (suite *serviceTestSuite) TestMetrics() {
 		},
 		{
 			name:        "bad case",
-			expectedErr: "failed to load metrics",
+			err:         errors.New("err"),
+			expectedErr: "failed to load metrics: err",
 		},
 	}
 
 	for _, test := range tt {
 		suite.Run(test.name, func() {
-			suite.repo.On("LoadAll").Once().Return(test.expected)
+			suite.repo.On("LoadAll").Once().Return(test.expected, test.err)
 
 			got, err := suite.service.GetMetrics()
 			if err != nil {
@@ -111,8 +116,8 @@ func (suite *serviceTestSuite) TestServiceSave() {
 	tt := []struct {
 		name     string
 		m        model.Metric
-		expected error
-		saved    bool
+		expected string
+		err      error
 	}{
 		{
 			name: "good case (gauge)",
@@ -121,8 +126,6 @@ func (suite *serviceTestSuite) TestServiceSave() {
 				ID:    "metric1",
 				Value: f1,
 			},
-			saved:    true,
-			expected: nil,
 		},
 		{
 			name: "good case (counter)",
@@ -131,8 +134,6 @@ func (suite *serviceTestSuite) TestServiceSave() {
 				ID:    "metric1",
 				Delta: i,
 			},
-			expected: nil,
-			saved:    true,
 		},
 		{
 			name: "failed to store data (counter)",
@@ -141,8 +142,8 @@ func (suite *serviceTestSuite) TestServiceSave() {
 				ID:    "metric1",
 				Delta: i,
 			},
-			saved:    false,
-			expected: service.ErrStoreData,
+			err:      errors.New("err"),
+			expected: "failed to store data: err",
 		},
 		{
 			name: "failed to store data (gauge)",
@@ -151,17 +152,21 @@ func (suite *serviceTestSuite) TestServiceSave() {
 				ID:    "metric1",
 				Value: f1,
 			},
-			saved:    false,
-			expected: service.ErrStoreData,
+			err:      errors.New("err"),
+			expected: "failed to store data: err",
 		},
 	}
 
 	for _, test := range tt {
 		suite.Run(test.name, func() {
-			suite.repo.On("Store", test.m).Once().Return(test.saved)
+			suite.repo.On("Store", test.m).Once().Return(test.err)
 
 			err := suite.service.SaveMetric(test.m)
-			suite.Equal(test.expected, err)
+			if test.expected != "" {
+				suite.EqualError(err, test.expected)
+			} else {
+				suite.NoError(err)
+			}
 		})
 	}
 }

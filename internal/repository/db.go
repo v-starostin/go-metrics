@@ -24,7 +24,7 @@ func NewStorage(logger *zerolog.Logger, db *sql.DB) *Storage {
 	}
 }
 
-func (s *Storage) Load(mtype, mname string) *model.Metric {
+func (s *Storage) Load(mtype, mname string) (*model.Metric, error) {
 	var mID, mType string
 	var mValue sql.NullFloat64
 	var mDelta sql.NullInt64
@@ -32,7 +32,7 @@ func (s *Storage) Load(mtype, mname string) *model.Metric {
 	row := s.db.QueryRow("SELECT id, type, value, delta FROM metrics WHERE type = $1 AND id = $2", mtype, mname)
 	if err := row.Scan(&mID, &mType, &mValue, &mDelta); err != nil {
 		s.logger.Error().Err(err).Msg("Load method error")
-		return nil
+		return nil, err
 	}
 
 	return &model.Metric{
@@ -40,14 +40,14 @@ func (s *Storage) Load(mtype, mname string) *model.Metric {
 		ID:    mID,
 		Value: parseValue(mValue),
 		Delta: parseDelta(mDelta),
-	}
+	}, nil
 }
 
-func (s *Storage) LoadAll() model.Data {
+func (s *Storage) LoadAll() (model.Data, error) {
 	rows, err := s.db.Query("SELECT id,type,value,delta FROM metrics")
 	if err != nil {
 		s.logger.Error().Err(err).Msg("LoadAll: select statement error")
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -59,7 +59,7 @@ func (s *Storage) LoadAll() model.Data {
 
 		if err := rows.Scan(&mID, &mType, &mValue, &mDelta); err != nil {
 			s.logger.Error().Err(err).Msg("LoadAll: scan rows error")
-			return nil
+			return nil, err
 		}
 		_, ok := result[mType]
 		if !ok {
@@ -82,39 +82,39 @@ func (s *Storage) LoadAll() model.Data {
 	}
 	if err := rows.Err(); err != nil {
 		s.logger.Error().Err(err).Msg("LoadAll method error")
-		return nil
+		return nil, err
 	}
 
-	return result
+	return result, nil
 }
 
-func (s *Storage) StoreMetrics(metrics []model.Metric) bool {
-	var stored bool
+func (s *Storage) StoreMetrics(metrics []model.Metric) error {
+	//var stored bool
 
 	tx, err := s.db.Begin()
 	if err != nil {
 		s.logger.Error().Err(err).Msg("StoreMetrics: begin transaction error")
-		return false
+		return err
 	}
 
 	for _, metric := range metrics {
-		stored = store(tx, s.logger, metric)
-		if !stored {
+		err = store(tx, s.logger, metric)
+		if err != nil {
 			s.logger.Error().Err(err).Msg("StoreMetrics: store data error")
 			tx.Rollback()
-			return false
+			return err
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		s.logger.Error().Err(err).Msg("StoreMetrics: commit transaction error")
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
-func store(tx *sql.Tx, logger *zerolog.Logger, m model.Metric) bool {
+func store(tx *sql.Tx, logger *zerolog.Logger, m model.Metric) error {
 	logger.Info().Any("metric", m).Send()
 
 	var mID, mType string
@@ -124,7 +124,7 @@ func store(tx *sql.Tx, logger *zerolog.Logger, m model.Metric) bool {
 	err := raw.Scan(&mID, &mType, &mDelta)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		logger.Error().Err(err).Msg("store: scan row error")
-		return false
+		return err
 	}
 
 	if m.MType == service.TypeCounter {
@@ -142,7 +142,7 @@ func store(tx *sql.Tx, logger *zerolog.Logger, m model.Metric) bool {
 		}
 		if err != nil {
 			logger.Error().Err(err).Msg("store: error to store counter")
-			return false
+			return err
 		}
 	}
 
@@ -161,29 +161,29 @@ func store(tx *sql.Tx, logger *zerolog.Logger, m model.Metric) bool {
 		}
 		if err != nil {
 			logger.Error().Err(err).Msg("store: error to store gauge")
-			return false
+			return err
 		}
 	}
 
-	return true
+	return nil
 }
 
-func (s *Storage) Store(m model.Metric) bool {
+func (s *Storage) Store(m model.Metric) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Store: begin transaction error")
-		return false
+		return err
 	}
-	if stored := store(tx, s.logger, m); !stored {
+	if err := store(tx, s.logger, m); err != nil {
 		s.logger.Error().Err(err).Msg("Store: store data error")
 		tx.Rollback()
-		return false
+		return err
 	}
 	if err := tx.Commit(); err != nil {
 		s.logger.Error().Err(err).Msg("Store: commit transaction error")
-		return false
+		return err
 	}
-	return true
+	return nil
 }
 
 func parseDelta(v sql.NullInt64) *int64 {

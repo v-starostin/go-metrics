@@ -3,6 +3,7 @@ package repository
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
@@ -71,32 +72,30 @@ func (s *MemStorage) WriteToFile() error {
 	return nil
 }
 
-func (s *MemStorage) LoadAll() model.Data {
+func (s *MemStorage) LoadAll() (model.Data, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.data
+	return s.data, nil
 }
 
-func (s *MemStorage) Load(mtype, mname string) *model.Metric {
+func (s *MemStorage) Load(mtype, mname string) (*model.Metric, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	metrics, ok := s.data[mtype]
 	if !ok {
-		s.logger.Info().Msgf("Metric type %s doesn't exist", mtype)
-		return nil
+		return nil, fmt.Errorf("metric type: %s does not exist", mtype)
 	}
 
 	mvalue, ok := metrics[mname]
 	if !ok {
-		s.logger.Info().Msgf("Metric %v doesn't exist", mvalue)
-		return nil
+		return nil, fmt.Errorf("metric name: %s does not exist", mname)
 	}
 
-	return &mvalue
+	return &mvalue, nil
 }
 
-func (s *MemStorage) Store(m model.Metric) bool {
+func (s *MemStorage) Store(m model.Metric) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -113,7 +112,7 @@ func (s *MemStorage) Store(m model.Metric) bool {
 		s.data[m.MType] = map[string]model.Metric{
 			m.ID: {ID: m.ID, MType: m.MType, Value: m.Value, Delta: m.Delta},
 		}
-		return true
+		return nil
 	}
 
 	switch m.MType {
@@ -123,23 +122,23 @@ func (s *MemStorage) Store(m model.Metric) bool {
 		metric, ok := metrics[m.ID]
 		if !ok {
 			metrics[m.ID] = model.Metric{ID: m.ID, MType: m.MType, Delta: m.Delta}
-			return true
+			return nil
 		}
 		*metric.Delta += *m.Delta
 		metrics[m.ID] = model.Metric{ID: m.ID, MType: m.MType, Delta: metric.Delta}
 	}
 	s.logger.Info().Interface("Storage content", s.data).Send()
 
-	return true
+	return nil
 }
 
-func (s *MemStorage) StoreMetrics(metrics []model.Metric) bool {
-	var stored bool
+func (s *MemStorage) StoreMetrics(metrics []model.Metric) error {
+	var err error
 	for _, metric := range metrics {
-		stored = s.Store(metric)
-		if !stored {
-			return false
+		err = s.Store(metric)
+		if err != nil {
+			return err
 		}
 	}
-	return true
+	return nil
 }
