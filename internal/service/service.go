@@ -16,7 +16,6 @@ const (
 
 var (
 	ErrParseMetric = errors.New("failed to parse metric: wrong type")
-	ErrStoreData   = errors.New("failed to store data")
 )
 
 type Service struct {

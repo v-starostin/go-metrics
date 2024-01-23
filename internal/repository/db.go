@@ -89,8 +89,6 @@ func (s *Storage) LoadAll() (model.Data, error) {
 }
 
 func (s *Storage) StoreMetrics(metrics []model.Metric) error {
-	//var stored bool
-
 	tx, err := s.db.Begin()
 	if err != nil {
 		s.logger.Error().Err(err).Msg("StoreMetrics: begin transaction error")

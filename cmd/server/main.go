@@ -25,6 +25,7 @@ import (
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
+// to be reworked
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 

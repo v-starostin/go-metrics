@@ -44,7 +44,7 @@ loop:
 			logger.Info().Interface("metrics", a.Metrics).Msg("Metrics collected")
 		case <-report.C:
 			a.Retry(ctx, 3, func(ctx context.Context) error {
-				return a.SendMetrics1(ctx)
+				return a.SendMetrics(ctx)
 			}, 1*time.Second, 3*time.Second, 5*time.Second)
 			logger.Info().Interface("metrics", a.Metrics).Msg("Metrics sent")
 		case <-ctx.Done():
