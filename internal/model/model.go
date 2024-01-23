@@ -1,26 +1,21 @@
 package model
 
+type AgentMetric struct {
+	MType string `json:"type"`
+	ID    string `json:"id"`
+	Value any    `json:"value,omitempty"`
+	Delta any    `json:"delta,omitempty"`
+}
+
 type Metric struct {
-	Type  string
-	Name  string
-	Value any
+	ID    string   `json:"id"`
+	MType string   `json:"type"`
+	Delta *int64   `json:"delta,omitempty"`
+	Value *float64 `json:"value,omitempty"`
+}
+
+type Error struct {
+	Error string `json:"error"`
 }
 
 type Data map[string]map[string]Metric
-
-const HTMLTemplateString = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Metrics</title>
-</head>
-<body>
-    <h1>Metrics</h1>
-    <ul>
-    {{range .}}{{range .}}
-        <li>{{.Name}}: {{.Value}}</li>
-    {{end}}{{end}}
-    </ul>
-</body>
-</html>
-`

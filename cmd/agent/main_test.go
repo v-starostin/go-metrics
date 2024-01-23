@@ -1,13 +1,15 @@
 package main_test
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	mmock "github.com/stretchr/testify/mock"
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/mock"
@@ -18,31 +20,18 @@ import (
 func TestSendMetrics(t *testing.T) {
 	var ctx = context.Background()
 	client := &mock.HTTPClient{}
-	metrics := []model.Metric{
-		{Type: "gauge", Name: "metric1", Value: 12},
-		{Type: "counter", Name: "metric3", Value: 3},
+	metrics := []model.AgentMetric{
+		{MType: "gauge", ID: "metric1", Value: float64(10)},
 	}
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080")
+	a.Metrics = metrics
 	t.Run("good case", func(t *testing.T) {
-		{
-			req, err := http.NewRequest(http.MethodPost, "http://0.0.0.0:8080/update/gauge/metric1/12", nil)
-			assert.NoError(t, err)
-			req.Header.Add("Content-Type", "text/plain")
-			res := &http.Response{}
-			res.StatusCode = http.StatusOK
-			res.Body = io.NopCloser(bytes.NewBufferString("response"))
-			client.On("Do", req).Return(res, nil)
+		res := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader("test")),
 		}
-		{
-			req, err := http.NewRequest(http.MethodPost, "http://0.0.0.0:8080/update/counter/metric3/3", nil)
-			assert.NoError(t, err)
-			req.Header.Add("Content-Type", "text/plain")
-			res := &http.Response{}
-			res.StatusCode = http.StatusOK
-			res.Body = io.NopCloser(bytes.NewBufferString("response"))
-			client.On("Do", req).Return(res, nil)
-		}
-
-		err := agent.SendMetrics(ctx, client, metrics, "0.0.0.0:8080")
-		assert.NoError(t, err)
+		client.On("Do", mmock.Anything).Once().Return(res, nil)
+		a.SendMetrics(ctx)
+		assert.Equal(t, metrics, a.Metrics)
 	})
 }

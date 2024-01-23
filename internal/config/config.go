@@ -2,23 +2,25 @@ package config
 
 import (
 	"flag"
-	"log"
 
 	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
-	ServerAddress  string `env:"ADDRESS"`
-	ReportInterval int    `env:"REPORT_INTERVAL"`
-	PollInterval   int    `env:"POLL_INTERVAL"`
+	ServerAddress   string `env:"ADDRESS"`
+	ReportInterval  int    `env:"REPORT_INTERVAL"`
+	PollInterval    int    `env:"POLL_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         *bool  `env:"RESTORE"`
+	StoreInterval   *int   `env:"STORE_INTERVAL"`
 }
 
-func NewAgent() *Config {
+func NewAgent() (*Config, error) {
 	srvAddr, reportInt, pollInt := parseAgentFlags()
 
 	config := Config{}
 	if err := env.Parse(&config); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	if config.ServerAddress == "" {
@@ -31,22 +33,31 @@ func NewAgent() *Config {
 		config.PollInterval = pollInt
 	}
 
-	return &config
+	return &config, nil
 }
 
-func NewServer() *Config {
-	srvAddr := parseServerFlags()
+func NewServer() (*Config, error) {
+	srvAddr, fileStoragePath, restore, storeInterval := parseServerFlags()
 
 	config := Config{}
 	if err := env.Parse(&config); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	if config.ServerAddress == "" {
 		config.ServerAddress = srvAddr
 	}
+	if config.Restore == nil {
+		config.Restore = &restore
+	}
+	if config.StoreInterval == nil {
+		config.StoreInterval = &storeInterval
+	}
+	if config.FileStoragePath == "" {
+		config.FileStoragePath = fileStoragePath
+	}
 
-	return &config
+	return &config, nil
 }
 
 func parseAgentFlags() (string, int, int) {
@@ -58,9 +69,12 @@ func parseAgentFlags() (string, int, int) {
 	return *serverAddress, *reportInterval, *pollInterval
 }
 
-func parseServerFlags() string {
+func parseServerFlags() (string, string, bool, int) {
 	serverAddress := flag.String("a", "localhost:8080", "address and port to run server")
+	fileStoragePath := flag.String("f", "/tmp/metrics-db.json", "file storage path")
+	restore := flag.Bool("r", true, "restore")
+	storeInterval := flag.Int("i", 300, "interval")
 	flag.Parse()
 
-	return *serverAddress
+	return *serverAddress, *fileStoragePath, *restore, *storeInterval
 }

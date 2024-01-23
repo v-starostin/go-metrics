@@ -1,14 +1,19 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
-	"log"
+	"io"
 	"math/rand"
 	"net/http"
 	"reflect"
 	"runtime"
 	"sync"
+
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -18,38 +23,81 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func SendMetrics(ctx context.Context, client HTTPClient, metrics []model.Metric, address string) error {
+type Agent struct {
+	mu      sync.Mutex
+	logger  *zerolog.Logger
+	client  HTTPClient
+	Metrics []model.AgentMetric
+	address string
+	counter *int64
+	gw      *gzip.Writer
+}
+
+func New(logger *zerolog.Logger, client HTTPClient, address string) *Agent {
+	counter := new(int64)
+	*counter = 0
+	return &Agent{
+		logger:  logger,
+		client:  client,
+		address: address,
+		counter: counter,
+		gw:      gzip.NewWriter(io.Discard),
+		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+2),
+	}
+}
+
+func (a *Agent) SendMetrics(ctx context.Context) {
 	wg := sync.WaitGroup{}
-	wg.Add(len(metrics))
+	wg.Add(len(a.Metrics))
 
-	for _, m := range metrics {
-		m := m
-
-		go func() {
+	for _, m := range a.Metrics {
+		go func(m model.AgentMetric) {
 			defer wg.Done()
-
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/%s/%s/%v", address, m.Type, m.Name, m.Value), nil)
+			b, err := json.Marshal(m)
 			if err != nil {
-				log.Println(err)
+				a.logger.Error().Err(err).Msg("Marshalling error")
 				return
 			}
-			req.Header.Add("Content-Type", "text/plain")
-			res, err := client.Do(req)
+
+			buf := &bytes.Buffer{}
+			a.mu.Lock()
+			a.gw.Reset(buf)
+			n, err := a.gw.Write(b)
 			if err != nil {
-				log.Println(err)
+				a.logger.Error().Err(err).Msg("gw.Write error")
+				return
+			}
+			a.gw.Close()
+			a.mu.Unlock()
+
+			a.logger.Info().
+				Int("len of b", len(b)).
+				Int("written bytes", n).
+				Int("len of buf", len(buf.Bytes())).
+				Send()
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", a.address), buf)
+			if err != nil {
+				a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
+				return
+			}
+			req.Header.Add("Content-Type", "application/json")
+			req.Header.Add("Content-Encoding", "gzip")
+
+			res, err := a.client.Do(req)
+			if err != nil {
+				a.logger.Error().Err(err).Msg("client.Do method error")
 				return
 			}
 			res.Body.Close()
-		}()
+			a.logger.Info().Any("metric", m).Msg("Metric is sent")
+		}(m)
 	}
-
 	wg.Wait()
-
-	return nil
 }
 
-func CollectMetrics(metrics []model.Metric, counter *int64) {
-	*counter++
+func (a *Agent) CollectMetrics() {
+	*a.counter++
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 	msvalue := reflect.ValueOf(memStats)
@@ -60,9 +108,9 @@ func CollectMetrics(metrics []model.Metric, counter *int64) {
 		if !ok {
 			continue
 		}
-		value := msvalue.FieldByName(metric)
-		metrics[index] = model.Metric{Type: service.TypeGauge, Name: field.Name, Value: value}
+		value := msvalue.FieldByName(metric).Interface()
+		a.Metrics[index] = model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value}
 	}
-	metrics[len(model.GaugeMetrics)] = model.Metric{Type: service.TypeGauge, Name: "RandomValue", Value: rand.Float64()}
-	metrics[len(model.GaugeMetrics)+1] = model.Metric{Type: service.TypeCounter, Name: "PollCount", Value: *counter}
+	a.Metrics[len(model.GaugeMetrics)] = model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()}
+	a.Metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter}
 }

@@ -2,10 +2,9 @@ package service
 
 import (
 	"fmt"
-	"log"
-	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 )
@@ -21,18 +20,21 @@ var (
 )
 
 type Service struct {
-	repo Repository
+	logger *zerolog.Logger
+	repo   Repository
 }
 
 type Repository interface {
-	StoreCounter(mtype, mname string, mvalue int64) bool
-	StoreGauge(mtype, mname string, mvalue float64) bool
 	Load(mtype, mname string) *model.Metric
 	LoadAll() model.Data
+	Store(m model.Metric) bool
 }
 
-func New(repo Repository) *Service {
-	return &Service{repo: repo}
+func New(l *zerolog.Logger, repo Repository) *Service {
+	return &Service{
+		logger: l,
+		repo:   repo,
+	}
 }
 
 func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
@@ -53,31 +55,16 @@ func (s *Service) GetMetrics() (model.Data, error) {
 	return m, nil
 }
 
-func (s *Service) SaveMetric(mtype, mname, mvalue string) error {
-	switch mtype {
-	case TypeCounter:
-		log.Println("metrics type counter: parsing value string to int64")
-		value, err := strconv.ParseInt(mvalue, 10, 0)
-		if err != nil {
-			return ErrParseMetric
-		}
+func (s *Service) SaveMetric(m model.Metric) error {
+	logger := s.logger.With().
+		Str("type", m.MType).
+		Str("name", m.ID).
+		Logger()
 
-		log.Println("storing data to storage (counter)")
-		if ok := s.repo.StoreCounter(mtype, mname, value); !ok {
-			return ErrStoreData
-		}
-	case TypeGauge:
-		log.Println("metrics type gauge: parsing value string to float64")
-		value, err := strconv.ParseFloat(mvalue, 64)
-		if err != nil {
-			return ErrParseMetric
-		}
-
-		log.Println("storing data to storage (gauge)")
-		if ok := s.repo.StoreGauge(mtype, mname, value); !ok {
-			return ErrStoreData
-		}
+	if ok := s.repo.Store(m); !ok {
+		return ErrStoreData
 	}
+	logger.Info().Msg("Metric is stored")
 
 	return nil
 }
