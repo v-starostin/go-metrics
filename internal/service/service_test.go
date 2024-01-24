@@ -55,7 +55,7 @@ func (suite *serviceTestSuite) TestMetric() {
 
 	for _, test := range tt {
 		suite.Run(test.name, func() {
-			suite.repo.On("Load", test.metric.MType, test.metric.ID).Once().Return(test.metric, test.err)
+			mockCall := suite.repo.On("Load", test.metric.MType, test.metric.ID).Return(test.metric, test.err)
 
 			got, err := suite.service.GetMetric(test.metric.MType, test.metric.ID)
 			if err != nil {
@@ -63,6 +63,7 @@ func (suite *serviceTestSuite) TestMetric() {
 			} else {
 				suite.Equal(test.expected, got)
 			}
+			mockCall.Unset()
 		})
 	}
 }
@@ -98,7 +99,7 @@ func (suite *serviceTestSuite) TestMetrics() {
 
 	for _, test := range tt {
 		suite.Run(test.name, func() {
-			suite.repo.On("LoadAll").Once().Return(test.expected, test.err)
+			mockCall := suite.repo.On("LoadAll").Return(test.expected, test.err)
 
 			got, err := suite.service.GetMetrics()
 			if err != nil {
@@ -106,6 +107,7 @@ func (suite *serviceTestSuite) TestMetrics() {
 			} else {
 				suite.Equal(test.expected, got)
 			}
+			mockCall.Unset()
 		})
 	}
 }
@@ -159,7 +161,7 @@ func (suite *serviceTestSuite) TestServiceSave() {
 
 	for _, test := range tt {
 		suite.Run(test.name, func() {
-			suite.repo.On("Store", test.m).Once().Return(test.err)
+			mockCall := suite.repo.On("StoreMetric", test.m).Return(test.err)
 
 			err := suite.service.SaveMetric(test.m)
 			if test.expected != "" {
@@ -167,6 +169,7 @@ func (suite *serviceTestSuite) TestServiceSave() {
 			} else {
 				suite.NoError(err)
 			}
+			mockCall.Unset()
 		})
 	}
 }

@@ -166,7 +166,7 @@ func store(tx *sql.Tx, logger *zerolog.Logger, m model.Metric) error {
 	return nil
 }
 
-func (s *Storage) Store(m model.Metric) error {
+func (s *Storage) StoreMetric(m model.Metric) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Store: begin transaction error")

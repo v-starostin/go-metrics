@@ -108,12 +108,12 @@ func (_m *Repository) RestoreFromFile() error {
 	return r0
 }
 
-// Store provides a mock function with given fields: m
-func (_m *Repository) Store(m model.Metric) error {
+// StoreMetric provides a mock function with given fields: m
+func (_m *Repository) StoreMetric(m model.Metric) error {
 	ret := _m.Called(m)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Store")
+		panic("no return value specified for StoreMetric")
 	}
 
 	var r0 error

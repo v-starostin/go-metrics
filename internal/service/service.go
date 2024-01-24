@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -14,9 +15,9 @@ const (
 	TypeGauge   = "gauge"
 )
 
-var (
-	ErrParseMetric = errors.New("failed to parse metric: wrong type")
-)
+const maxRetries = 3
+
+var ErrParseMetric = errors.New("failed to parse metric: wrong type")
 
 type Service struct {
 	logger *zerolog.Logger
@@ -26,7 +27,7 @@ type Service struct {
 type Repository interface {
 	Load(mtype, mname string) (*model.Metric, error)
 	LoadAll() (model.Data, error)
-	Store(m model.Metric) error
+	StoreMetric(m model.Metric) error
 	StoreMetrics(m []model.Metric) error
 	PingStorage() error
 	RestoreFromFile() error
@@ -41,7 +42,15 @@ func New(l *zerolog.Logger, repo Repository) *Service {
 }
 
 func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
-	m, err := s.repo.Load(mtype, mname)
+	var m *model.Metric
+	var err error
+	err = s.Retry(maxRetries, func() error {
+		m, err = s.repo.Load(mtype, mname)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, 1*time.Second, 3*time.Second, 5*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load metric %s: %w", mname, err)
 	}
@@ -50,11 +59,18 @@ func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
 }
 
 func (s *Service) GetMetrics() (model.Data, error) {
-	m, err := s.repo.LoadAll()
+	var m model.Data
+	var err error
+	err = s.Retry(maxRetries, func() error {
+		m, err = s.repo.LoadAll()
+		if err != nil {
+			return err
+		}
+		return nil
+	}, 1*time.Second, 3*time.Second, 5*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load metrics: %w", err)
 	}
-
 	return m, nil
 }
 
@@ -64,20 +80,30 @@ func (s *Service) SaveMetric(m model.Metric) error {
 		Str("name", m.ID).
 		Logger()
 
-	if err := s.repo.Store(m); err != nil {
+	err := s.Retry(maxRetries, func() error {
+		if err := s.repo.StoreMetric(m); err != nil {
+			return err
+		}
+		return nil
+	}, 1*time.Second, 3*time.Second, 5*time.Second)
+	if err != nil {
 		return fmt.Errorf("failed to store data: %w", err)
 	}
 	logger.Info().Msg("Metric is stored")
-
 	return nil
 }
 
 func (s *Service) SaveMetrics(m []model.Metric) error {
-	if err := s.repo.StoreMetrics(m); err != nil {
+	err := s.Retry(maxRetries, func() error {
+		if err := s.repo.StoreMetrics(m); err != nil {
+			return err
+		}
+		return nil
+	}, 1*time.Second, 3*time.Second, 5*time.Second)
+	if err != nil {
 		return fmt.Errorf("failed to store data: %w", err)
 	}
 	s.logger.Info().Msg("Metric is stored")
-
 	return nil
 }
 
@@ -93,19 +119,19 @@ func (s *Service) RestoreFromFile() error {
 	return s.repo.RestoreFromFile()
 }
 
-//func (s *Service) Retry(maxRetries int, fn func() bool, intervals ...time.Duration) error {
-//	var ok bool
-//	ok = fn()
-//	if ok {
-//		return nil
-//	}
-//	for i := 0; i < maxRetries; i++ {
-//		s.logger.Info().Msgf("Retrying... (Attempt %d)", i+1)
-//		time.Sleep(intervals[i])
-//		if ok = fn(); ok {
-//			return nil
-//		}
-//	}
-//	s.logger.Error().Msg("Retrying... Failed")
-//	return errors.New("err")
-//}
+func (s *Service) Retry(maxRetries int, fn func() error, intervals ...time.Duration) error {
+	var err error
+	err = fn()
+	if err == nil {
+		return nil
+	}
+	for i := 0; i < maxRetries; i++ {
+		s.logger.Info().Msgf("Retrying... (Attempt %d)", i+1)
+		time.Sleep(intervals[i])
+		if err = fn(); err == nil {
+			return nil
+		}
+	}
+	s.logger.Error().Msg("Retrying... Failed")
+	return err
+}
