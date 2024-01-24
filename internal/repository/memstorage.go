@@ -95,7 +95,7 @@ func (s *MemStorage) Load(mtype, mname string) (*model.Metric, error) {
 	return &mvalue, nil
 }
 
-func (s *MemStorage) Store(m model.Metric) error {
+func (s *MemStorage) StoreMetric(m model.Metric) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -135,7 +135,7 @@ func (s *MemStorage) Store(m model.Metric) error {
 func (s *MemStorage) StoreMetrics(metrics []model.Metric) error {
 	var err error
 	for _, metric := range metrics {
-		err = s.Store(metric)
+		err = s.StoreMetric(metric)
 		if err != nil {
 			return err
 		}
