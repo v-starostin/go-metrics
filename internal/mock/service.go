@@ -72,6 +72,42 @@ func (_m *Service) GetMetrics() (model.Data, error) {
 	return r0, r1
 }
 
+// PingStorage provides a mock function with given fields:
+func (_m *Service) PingStorage() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for PingStorage")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// RestoreFromFile provides a mock function with given fields:
+func (_m *Service) RestoreFromFile() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for RestoreFromFile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SaveMetric provides a mock function with given fields: m
 func (_m *Service) SaveMetric(m model.Metric) error {
 	ret := _m.Called(m)
@@ -101,6 +137,24 @@ func (_m *Service) SaveMetrics(m []model.Metric) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func([]model.Metric) error); ok {
 		r0 = rf(m)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// WriteToFile provides a mock function with given fields:
+func (_m *Service) WriteToFile() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for WriteToFile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
 	} else {
 		r0 = ret.Error(0)
 	}

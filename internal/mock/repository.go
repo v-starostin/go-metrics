@@ -72,6 +72,24 @@ func (_m *Repository) LoadAll() (model.Data, error) {
 	return r0, r1
 }
 
+// PingStorage provides a mock function with given fields:
+func (_m *Repository) PingStorage() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for PingStorage")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // RestoreFromFile provides a mock function with given fields:
 func (_m *Repository) RestoreFromFile() error {
 	ret := _m.Called()

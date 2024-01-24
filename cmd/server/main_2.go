@@ -26,7 +26,7 @@ import (
 )
 
 // to be reworked
-func main() {
+func main2() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	cfg, err := config.NewServer()
