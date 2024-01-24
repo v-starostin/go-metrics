@@ -28,6 +28,7 @@ type Repository interface {
 	LoadAll() (model.Data, error)
 	Store(m model.Metric) error
 	StoreMetrics(m []model.Metric) error
+	PingStorage() error
 	RestoreFromFile() error
 	WriteToFile() error
 }
@@ -78,6 +79,10 @@ func (s *Service) SaveMetrics(m []model.Metric) error {
 	s.logger.Info().Msg("Metric is stored")
 
 	return nil
+}
+
+func (s *Service) PingStorage() error {
+	return s.repo.PingStorage()
 }
 
 //func (s *Service) Retry(maxRetries int, fn func() bool, intervals ...time.Duration) error {

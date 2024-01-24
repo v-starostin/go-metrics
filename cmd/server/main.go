@@ -41,9 +41,6 @@ func main() {
 			logger.Fatal().Err(err).Msg("DB initializing error")
 		}
 		defer db.Close()
-		if err := db.Ping(); err != nil {
-			logger.Fatal().Err(err).Msg("DB pinging error")
-		}
 
 		instance, err := postgres.WithInstance(db, &postgres.Config{})
 		if err != nil {
@@ -73,7 +70,7 @@ func main() {
 	postMetricHandler := handler.NewPostMetric(&logger, srv)
 	postMetricV2Handler := handler.NewPostMetricV2(&logger, srv)
 	postMetrics := handler.NewPostMetrics(&logger, srv)
-	pingDB := handler.DBPing(&logger, db)
+	pingStorage := handler.NewPingStorage(&logger, srv)
 
 	if *cfg.Restore {
 		err := repo.RestoreFromFile()
@@ -95,7 +92,7 @@ func main() {
 		r.Method(http.MethodPost, "/updates/", postMetrics)
 		r.Method(http.MethodPost, "/update/", postMetricV2Handler)
 		r.Method(http.MethodPost, "/value/", getMetricV2Handler)
-		r.Method(http.MethodGet, "/ping", pingDB)
+		r.Method(http.MethodGet, "/ping", pingStorage)
 	})
 
 	server := http.Server{

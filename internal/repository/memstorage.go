@@ -142,3 +142,7 @@ func (s *MemStorage) StoreMetrics(metrics []model.Metric) error {
 	}
 	return nil
 }
+
+func (s *MemStorage) PingStorage() error {
+	return nil
+}

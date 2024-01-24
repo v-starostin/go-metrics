@@ -184,6 +184,10 @@ func (s *Storage) Store(m model.Metric) error {
 	return nil
 }
 
+func (s *Storage) PingStorage() error {
+	return s.db.Ping()
+}
+
 func parseDelta(v sql.NullInt64) *int64 {
 	if v.Valid {
 		return &v.Int64
