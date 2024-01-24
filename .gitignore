@@ -25,4 +25,3 @@ vendor/
 .vscode
 
 internal/logger
-internal/application
