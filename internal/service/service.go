@@ -85,6 +85,14 @@ func (s *Service) PingStorage() error {
 	return s.repo.PingStorage()
 }
 
+func (s *Service) WriteToFile() error {
+	return s.repo.WriteToFile()
+}
+
+func (s *Service) RestoreFromFile() error {
+	return s.repo.RestoreFromFile()
+}
+
 //func (s *Service) Retry(maxRetries int, fn func() bool, intervals ...time.Duration) error {
 //	var ok bool
 //	ok = fn()

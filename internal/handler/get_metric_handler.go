@@ -16,6 +16,8 @@ type Service interface {
 	GetMetric(mtype, mname string) (*model.Metric, error)
 	GetMetrics() (model.Data, error)
 	PingStorage() error
+	WriteToFile() error
+	RestoreFromFile() error
 }
 
 type GetMetric struct {

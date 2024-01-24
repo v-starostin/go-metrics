@@ -64,6 +64,7 @@ func main() {
 		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	}
 	srv := service.New(&logger, repo)
+	f := handler.NewFile(srv)
 	getMetricHandler := handler.NewGetMetric(&logger, srv)
 	getMetricsHandler := handler.NewGetMetrics(&logger, srv)
 	getMetricV2Handler := handler.NewGetMetricV2(&logger, srv)
@@ -73,7 +74,7 @@ func main() {
 	pingStorage := handler.NewPingStorage(&logger, srv)
 
 	if *cfg.Restore {
-		err := repo.RestoreFromFile()
+		err := f.RestoreFromFile()
 		if err != nil {
 			logger.Error().Err(err).Msg("Failed to restore storage from file")
 		}
@@ -111,7 +112,7 @@ func main() {
 			for {
 				select {
 				case <-ticker.C:
-					if err := repo.WriteToFile(); err != nil {
+					if err := f.WriteToFile(); err != nil {
 						logger.Error().Err(err).Msg("Failed to write storage content to file")
 					}
 				case <-ctx.Done():
@@ -132,7 +133,7 @@ func main() {
 	<-ctx.Done()
 	logger.Info().Msg("Shutdown signal received")
 
-	if err := repo.WriteToFile(); err != nil {
+	if err := f.WriteToFile(); err != nil {
 		logger.Error().Err(err).Msg("Failed to write storage content to file")
 	}
 
