@@ -4,7 +4,7 @@ type File struct {
 	svc Service
 }
 
-func NewFile(s Service) *File { return &File{s} }
+func NewFile1(s Service) *File { return &File{s} }
 
 func (f *File) WriteToFile() error {
 	return f.svc.WriteToFile()

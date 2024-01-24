@@ -64,7 +64,7 @@ func main() {
 		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	}
 	srv := service.New(&logger, repo)
-	f := handler.NewFile(srv)
+	f := handler.NewFile1(srv)
 	getMetricHandler := handler.NewGetMetric(&logger, srv)
 	getMetricsHandler := handler.NewGetMetrics(&logger, srv)
 	getMetricV2Handler := handler.NewGetMetricV2(&logger, srv)
