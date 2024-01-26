@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 
@@ -46,54 +47,45 @@ func New(logger *zerolog.Logger, client HTTPClient, address string) *Agent {
 	}
 }
 
-func (a *Agent) SendMetrics(ctx context.Context) {
-	wg := sync.WaitGroup{}
-	wg.Add(len(a.Metrics))
-
-	for _, m := range a.Metrics {
-		go func(m model.AgentMetric) {
-			defer wg.Done()
-			b, err := json.Marshal(m)
-			if err != nil {
-				a.logger.Error().Err(err).Msg("Marshalling error")
-				return
-			}
-
-			buf := &bytes.Buffer{}
-			a.mu.Lock()
-			a.gw.Reset(buf)
-			n, err := a.gw.Write(b)
-			if err != nil {
-				a.logger.Error().Err(err).Msg("gw.Write error")
-				return
-			}
-			a.gw.Close()
-			a.mu.Unlock()
-
-			a.logger.Info().
-				Int("len of b", len(b)).
-				Int("written bytes", n).
-				Int("len of buf", len(buf.Bytes())).
-				Send()
-
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/update/", a.address), buf)
-			if err != nil {
-				a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
-				return
-			}
-			req.Header.Add("Content-Type", "application/json")
-			req.Header.Add("Content-Encoding", "gzip")
-
-			res, err := a.client.Do(req)
-			if err != nil {
-				a.logger.Error().Err(err).Msg("client.Do method error")
-				return
-			}
-			res.Body.Close()
-			a.logger.Info().Any("metric", m).Msg("Metric is sent")
-		}(m)
+func (a *Agent) SendMetrics(ctx context.Context) error {
+	b, err := json.Marshal(a.Metrics)
+	if err != nil {
+		a.logger.Error().Err(err).Msg("Marshalling error")
+		return err
 	}
-	wg.Wait()
+	a.logger.Info().Any("json", string(b)).Msg("Marshalled")
+
+	buf := &bytes.Buffer{}
+	a.gw.Reset(buf)
+	n, err := a.gw.Write(b)
+	if err != nil {
+		a.logger.Error().Err(err).Msg("gw.Write error")
+		return err
+	}
+	a.gw.Close()
+
+	a.logger.Info().
+		Int("len of b", len(b)).
+		Int("written bytes", n).
+		Int("len of buf", len(buf.Bytes())).
+		Send()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/updates/", a.address), buf)
+	if err != nil {
+		a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Encoding", "gzip")
+
+	res, err := a.client.Do(req)
+	if err != nil {
+		a.logger.Error().Err(err).Msg("client.Do method error")
+		return err
+	}
+	res.Body.Close()
+	a.logger.Info().Any("metric", a.Metrics).Msg("Metrics are sent")
+	return nil
 }
 
 func (a *Agent) CollectMetrics() {
@@ -113,4 +105,34 @@ func (a *Agent) CollectMetrics() {
 	}
 	a.Metrics[len(model.GaugeMetrics)] = model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()}
 	a.Metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter}
+}
+
+func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error, intervals ...time.Duration) error {
+	var err error
+	err = fn(ctx)
+	if err == nil {
+		return nil
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	for i := 0; i < maxRetries; i++ {
+		a.logger.Info().Msgf("Retrying... (Attempt %d)", i+1)
+
+		t := time.NewTimer(intervals[i])
+		select {
+		case <-t.C:
+			if err = fn(ctx); err == nil {
+				return nil
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+
+	}
+	a.logger.Error().Err(err).Msg("Retrying... Failed")
+	return err
 }

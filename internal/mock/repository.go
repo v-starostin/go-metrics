@@ -13,7 +13,7 @@ type Repository struct {
 }
 
 // Load provides a mock function with given fields: mtype, mname
-func (_m *Repository) Load(mtype string, mname string) *model.Metric {
+func (_m *Repository) Load(mtype string, mname string) (*model.Metric, error) {
 	ret := _m.Called(mtype, mname)
 
 	if len(ret) == 0 {
@@ -21,6 +21,10 @@ func (_m *Repository) Load(mtype string, mname string) *model.Metric {
 	}
 
 	var r0 *model.Metric
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, string) (*model.Metric, error)); ok {
+		return rf(mtype, mname)
+	}
 	if rf, ok := ret.Get(0).(func(string, string) *model.Metric); ok {
 		r0 = rf(mtype, mname)
 	} else {
@@ -29,11 +33,17 @@ func (_m *Repository) Load(mtype string, mname string) *model.Metric {
 		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(mtype, mname)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // LoadAll provides a mock function with given fields:
-func (_m *Repository) LoadAll() model.Data {
+func (_m *Repository) LoadAll() (model.Data, error) {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
@@ -41,6 +51,10 @@ func (_m *Repository) LoadAll() model.Data {
 	}
 
 	var r0 model.Data
+	var r1 error
+	if rf, ok := ret.Get(0).(func() (model.Data, error)); ok {
+		return rf()
+	}
 	if rf, ok := ret.Get(0).(func() model.Data); ok {
 		r0 = rf()
 	} else {
@@ -49,22 +63,100 @@ func (_m *Repository) LoadAll() model.Data {
 		}
 	}
 
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// PingStorage provides a mock function with given fields:
+func (_m *Repository) PingStorage() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for PingStorage")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
 	return r0
 }
 
-// Store provides a mock function with given fields: m
-func (_m *Repository) Store(m model.Metric) bool {
+// RestoreFromFile provides a mock function with given fields:
+func (_m *Repository) RestoreFromFile() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for RestoreFromFile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// StoreMetric provides a mock function with given fields: m
+func (_m *Repository) StoreMetric(m model.Metric) error {
 	ret := _m.Called(m)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Store")
+		panic("no return value specified for StoreMetric")
 	}
 
-	var r0 bool
-	if rf, ok := ret.Get(0).(func(model.Metric) bool); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func(model.Metric) error); ok {
 		r0 = rf(m)
 	} else {
-		r0 = ret.Get(0).(bool)
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// StoreMetrics provides a mock function with given fields: m
+func (_m *Repository) StoreMetrics(m []model.Metric) error {
+	ret := _m.Called(m)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StoreMetrics")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]model.Metric) error); ok {
+		r0 = rf(m)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// WriteToFile provides a mock function with given fields:
+func (_m *Repository) WriteToFile() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for WriteToFile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
 	}
 
 	return r0

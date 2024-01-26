@@ -12,8 +12,12 @@ import (
 
 type Service interface {
 	SaveMetric(m model.Metric) error
+	SaveMetrics(m []model.Metric) error
 	GetMetric(mtype, mname string) (*model.Metric, error)
 	GetMetrics() (model.Data, error)
+	PingStorage() error
+	WriteToFile() error
+	RestoreFromFile() error
 }
 
 type GetMetric struct {
