@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"compress/gzip"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
+
+	"github.com/v-starostin/go-metrics/internal/model"
 )
 
 type LogFormatter struct {
@@ -72,6 +75,7 @@ func CheckHash(l *zerolog.Logger, key string) func(next http.Handler) http.Handl
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			hashSHA256 := r.Header.Get("HashSHA256")
+			l.Info().Msgf("HashSHA256: %s", hashSHA256)
 			if hashSHA256 == "" {
 				next.ServeHTTP(w, r)
 				return
@@ -90,9 +94,10 @@ func CheckHash(l *zerolog.Logger, key string) func(next http.Handler) http.Handl
 				return
 			}
 			if !hmac.Equal(d, hh) {
-				writeResponse(w, http.StatusBadRequest, `{"error": "Bad Request"}`)
+				writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad Request"})
 				return
 			}
+			r.Body = io.NopCloser(bytes.NewReader(b))
 			next.ServeHTTP(w, r)
 		})
 	}

@@ -34,6 +34,9 @@ func NewAgent() (Config, error) {
 	if config.PollInterval == 0 {
 		config.PollInterval = flags.PollInterval
 	}
+	if config.Key == "" {
+		config.Key = flags.Key
+	}
 
 	return config, nil
 }

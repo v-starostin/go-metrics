@@ -81,8 +81,9 @@ func (a *Agent) SendMetrics(ctx context.Context) error {
 		return err
 	}
 	if a.key != "" {
+		buf2 := *buf
 		h := hmac.New(sha256.New, []byte(a.key))
-		if _, err := h.Write(buf.Bytes()); err != nil {
+		if _, err := h.Write(buf2.Bytes()); err != nil {
 			return err
 		}
 		d := h.Sum(nil)
