@@ -1,6 +1,10 @@
 package handler
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -23,6 +27,7 @@ type Service interface {
 type GetMetric struct {
 	logger  *zerolog.Logger
 	service Service
+	key     string
 }
 
 func NewGetMetric(l *zerolog.Logger, srv Service) *GetMetric {
@@ -42,6 +47,19 @@ func (h *GetMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logger.Info().Any("metric", metric).Msg("Received metric from storage")
+
+	if h.key != "" {
+		b, err := json.Marshal(metric)
+		if err != nil {
+			return
+		}
+
+		h1 := hmac.New(sha256.New, []byte(h.key))
+		h1.Write(b)
+		d := h1.Sum(nil)
+
+		w.Header().Add("HashSHA256", hex.EncodeToString(d))
+	}
 
 	switch mtype {
 	case service.TypeGauge:

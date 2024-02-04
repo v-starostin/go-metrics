@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 
@@ -12,6 +15,7 @@ import (
 type GetMetricV2 struct {
 	logger  *zerolog.Logger
 	service Service
+	key     string
 }
 
 func NewGetMetricV2(l *zerolog.Logger, s Service) *GetMetricV2 {
@@ -37,6 +41,19 @@ func (h *GetMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error().Err(err).Msg("GetMetric method error")
 		writeResponse(w, http.StatusNotFound, model.Error{Error: "Not found"})
 		return
+	}
+
+	if h.key != "" {
+		b, err := json.Marshal(res)
+		if err != nil {
+			return
+		}
+
+		h1 := hmac.New(sha256.New, []byte(h.key))
+		h1.Write(b)
+		d := h1.Sum(nil)
+
+		w.Header().Add("HashSHA256", hex.EncodeToString(d))
 	}
 
 	writeResponse(w, http.StatusOK, res)

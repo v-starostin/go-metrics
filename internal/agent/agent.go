@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,17 +33,19 @@ type Agent struct {
 	client  HTTPClient
 	Metrics []model.AgentMetric
 	address string
+	key     string
 	counter *int64
 	gw      *gzip.Writer
 }
 
-func New(logger *zerolog.Logger, client HTTPClient, address string) *Agent {
+func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent {
 	counter := new(int64)
 	*counter = 0
 	return &Agent{
 		logger:  logger,
 		client:  client,
 		address: address,
+		key:     key,
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
 		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+2),
@@ -74,6 +79,15 @@ func (a *Agent) SendMetrics(ctx context.Context) error {
 	if err != nil {
 		a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
 		return err
+	}
+	if a.key != "" {
+		h := hmac.New(sha256.New, []byte(a.key))
+		if _, err := h.Write(buf.Bytes()); err != nil {
+			return err
+		}
+		d := h.Sum(nil)
+		a.logger.Info().Msgf("hash: %x", d)
+		req.Header.Add("HashSHA256", hex.EncodeToString(d))
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Content-Encoding", "gzip")

@@ -2,6 +2,10 @@ package handler
 
 import (
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"net/http"
 	"slices"
 	"time"
@@ -59,6 +63,36 @@ func Decompress(l *zerolog.Logger) func(next http.Handler) http.Handler {
 			defer gr.Close()
 
 			r.Body = gr
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func CheckHash(l *zerolog.Logger, key string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			hashSHA256 := r.Header.Get("HashSHA256")
+			if hashSHA256 == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			h := hmac.New(sha256.New, []byte(key))
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				return
+			}
+			if _, err := h.Write(b); err != nil {
+				return
+			}
+			d := h.Sum(nil)
+			hh, err := hex.DecodeString(hashSHA256)
+			if err != nil {
+				return
+			}
+			if !hmac.Equal(d, hh) {
+				writeResponse(w, http.StatusBadRequest, `{"error": "Bad Request"}`)
+				return
+			}
 			next.ServeHTTP(w, r)
 		})
 	}
