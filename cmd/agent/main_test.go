@@ -23,7 +23,7 @@ func TestSendMetrics(t *testing.T) {
 	metrics := []model.AgentMetric{
 		{MType: "gauge", ID: "metric1", Value: float64(10)},
 	}
-	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080")
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "")
 	a.Metrics = metrics
 	t.Run("good case", func(t *testing.T) {
 		res := &http.Response{
