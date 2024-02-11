@@ -71,11 +71,10 @@ func Decompress(l *zerolog.Logger) func(next http.Handler) http.Handler {
 	}
 }
 
-func CheckHash(l *zerolog.Logger, key string) func(next http.Handler) http.Handler {
+func CheckHash(key string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			hashSHA256 := r.Header.Get("HashSHA256")
-			l.Info().Msgf("HashSHA256: %s", hashSHA256)
 			if hashSHA256 == "" {
 				next.ServeHTTP(w, r)
 				return
@@ -83,14 +82,17 @@ func CheckHash(l *zerolog.Logger, key string) func(next http.Handler) http.Handl
 			h := hmac.New(sha256.New, []byte(key))
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
+				writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad Request"})
 				return
 			}
 			if _, err := h.Write(b); err != nil {
+				writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal Server Error"})
 				return
 			}
 			d := h.Sum(nil)
 			hh, err := hex.DecodeString(hashSHA256)
 			if err != nil {
+				writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal Server Error"})
 				return
 			}
 			if !hmac.Equal(d, hh) {

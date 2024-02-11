@@ -2,10 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"html/template"
 	"net/http"
 
@@ -47,16 +43,7 @@ func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.key != "" {
-		b, err := json.Marshal(metrics)
-		if err != nil {
-			return
-		}
-
-		h1 := hmac.New(sha256.New, []byte(h.key))
-		h1.Write(b)
-		d := h1.Sum(nil)
-
-		w.Header().Add("HashSHA256", hex.EncodeToString(d))
+		w.Header().Add("HashSHA256", sign(metrics, h.key))
 	}
 
 	w.Header().Add("Content-Type", "text/html")

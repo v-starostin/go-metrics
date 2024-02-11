@@ -1,10 +1,6 @@
 package handler
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -49,16 +45,7 @@ func (h *GetMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Any("metric", metric).Msg("Received metric from storage")
 
 	if h.key != "" {
-		b, err := json.Marshal(metric)
-		if err != nil {
-			return
-		}
-
-		h1 := hmac.New(sha256.New, []byte(h.key))
-		h1.Write(b)
-		d := h1.Sum(nil)
-
-		w.Header().Add("HashSHA256", hex.EncodeToString(d))
+		w.Header().Add("HashSHA256", sign(metric, h.key))
 	}
 
 	switch mtype {
