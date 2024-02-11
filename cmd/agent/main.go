@@ -19,10 +19,9 @@ func main() {
 
 	cfg, err := config.NewAgent()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Configuration error")
+		logger.Error().Err(err).Msg("Configuration error")
+		return
 	}
-	poll := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
-	report := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 	client := &http.Client{
 		Timeout: time.Minute,
 	}
@@ -36,23 +35,15 @@ func main() {
 		Int("reportInterval", cfg.ReportInterval).
 		Msg("Started collecting metrics")
 
-loop:
-	for {
-		select {
-		case <-poll.C:
-			a.CollectMetrics()
-			logger.Info().Interface("metrics", a.Metrics).Msg("Metrics collected")
-		case <-report.C:
-			a.Retry(ctx, 3, func(ctx context.Context) error {
-				return a.SendMetrics(ctx)
-			}, 1*time.Second, 3*time.Second, 5*time.Second)
-			logger.Info().Interface("metrics", a.Metrics).Msg("Metrics sent")
-		case <-ctx.Done():
-			logger.Info().Err(ctx.Err()).Send()
-			poll.Stop()
-			report.Stop()
-			break loop
-		}
+	go a.CollectRuntimeMetrics(ctx, time.Duration(cfg.PollInterval))
+	go a.CollectGopsutilMetrics(ctx, time.Duration(cfg.PollInterval))
+
+	for i := 0; i < 2; i++ {
+		go a.Retry(ctx, 3, func(ctx context.Context) error {
+			return a.SendMetrics(ctx)
+		}, 1*time.Second, 3*time.Second, 5*time.Second)
 	}
+
+	<-ctx.Done()
 	logger.Info().Msg("Finished collecting metrics")
 }

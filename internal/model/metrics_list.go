@@ -1,6 +1,6 @@
 package model
 
-var GaugeMetrics = []string{
+var RuntimeGaugeMetrics = []string{
 	"Alloc",
 	"BuckHashSys",
 	"Frees",
@@ -28,4 +28,10 @@ var GaugeMetrics = []string{
 	"StackSys",
 	"Sys",
 	"TotalAlloc",
+}
+
+var GopsutilGaugeMetrics = []string{
+	"TotalMemory",
+	"FreeMemory",
+	"CPUutilization1",
 }

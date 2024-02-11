@@ -15,9 +15,11 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -48,7 +50,7 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 		key:     key,
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
-		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+2),
+		Metrics: make([]model.AgentMetric, 0, len(model.RuntimeGaugeMetrics)+2+len(model.GopsutilGaugeMetrics)),
 	}
 }
 
@@ -103,23 +105,54 @@ func (a *Agent) SendMetrics(ctx context.Context) error {
 	return nil
 }
 
-func (a *Agent) CollectMetrics() {
-	*a.counter++
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-	msvalue := reflect.ValueOf(memStats)
-	mstype := msvalue.Type()
+func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duration) {
+	poll := time.NewTicker(interval)
 
-	for index, metric := range model.GaugeMetrics {
-		field, ok := mstype.FieldByName(metric)
-		if !ok {
-			continue
+	for {
+		select {
+		case <-poll.C:
+			atomic.AddInt64(a.counter, 1)
+			var memStats runtime.MemStats
+			runtime.ReadMemStats(&memStats)
+			msvalue := reflect.ValueOf(memStats)
+			mstype := msvalue.Type()
+
+			for _, metric := range model.RuntimeGaugeMetrics {
+				field, ok := mstype.FieldByName(metric)
+				if !ok {
+					return
+				}
+				value := msvalue.FieldByName(metric).Interface()
+				a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value})
+			}
+
+			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()})
+			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter})
+		case <-ctx.Done():
+			poll.Stop()
+			return
 		}
-		value := msvalue.FieldByName(metric).Interface()
-		a.Metrics[index] = model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value}
 	}
-	a.Metrics[len(model.GaugeMetrics)] = model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()}
-	a.Metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter}
+}
+
+func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Duration) {
+	poll := time.NewTicker(interval)
+
+	for {
+		select {
+		case <-poll.C:
+			v, err := mem.VirtualMemory()
+			if err != nil {
+				return
+			}
+			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "TotalMemory", Value: int64(v.Total)})
+			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "FreeMemory", Value: int64(v.Free)})
+			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "CPUutilization1", Value: v.UsedPercent})
+		case <-ctx.Done():
+			poll.Stop()
+			return
+		}
+	}
 }
 
 func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error, intervals ...time.Duration) error {
