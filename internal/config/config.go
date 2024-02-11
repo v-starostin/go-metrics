@@ -14,6 +14,7 @@ type Config struct {
 	Restore         *bool  `env:"RESTORE"`
 	StoreInterval   *int   `env:"STORE_INTERVAL"`
 	DatabaseDNS     string `env:"DATABASE_DSN"`
+	Key             string `env:"KEY"`
 }
 
 func NewAgent() (Config, error) {
@@ -32,6 +33,9 @@ func NewAgent() (Config, error) {
 	}
 	if config.PollInterval == 0 {
 		config.PollInterval = flags.PollInterval
+	}
+	if config.Key == "" {
+		config.Key = flags.Key
 	}
 
 	return config, nil
@@ -60,6 +64,9 @@ func NewServer() (Config, error) {
 	if config.DatabaseDNS == "" {
 		config.DatabaseDNS = flags.DatabaseDNS
 	}
+	if config.Key == "" {
+		config.Key = flags.Key
+	}
 
 	if config.DatabaseDNS != "" {
 		config.FileStoragePath = ""
@@ -74,12 +81,14 @@ func parseAgentFlags() Config {
 	serverAddress := flag.String("a", "localhost:8080", "HTTP server endpoint address")
 	reportInterval := flag.Int("r", 10, "report interval to the server (in seconds)")
 	pollInterval := flag.Int("p", 2, "interval to gather metrics (in seconds)")
+	key := flag.String("k", "", "")
 	flag.Parse()
 
 	return Config{
 		ServerAddress:  *serverAddress,
 		ReportInterval: *reportInterval,
 		PollInterval:   *pollInterval,
+		Key:            *key,
 	}
 }
 
@@ -89,6 +98,7 @@ func parseServerFlags() Config {
 	databaseDSN := flag.String("d", "", "database DSN")
 	restore := flag.Bool("r", true, "restore")
 	storeInterval := flag.Int("i", 300, "interval")
+	key := flag.String("k", "", "")
 	flag.Parse()
 
 	return Config{
@@ -97,5 +107,6 @@ func parseServerFlags() Config {
 		DatabaseDNS:     *databaseDSN,
 		Restore:         restore,
 		StoreInterval:   storeInterval,
+		Key:             *key,
 	}
 }
