@@ -50,7 +50,7 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 		key:     key,
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
-		metrics: make([]model.AgentMetric, 0, len(model.RuntimeGaugeMetrics)+2+len(model.GopsutilGaugeMetrics)),
+		metrics: make([]model.AgentMetric, 0, len(model.GaugeMetrics)+5),
 	}
 }
 
@@ -117,7 +117,7 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 			msvalue := reflect.ValueOf(memStats)
 			mstype := msvalue.Type()
 
-			for _, metric := range model.RuntimeGaugeMetrics {
+			for _, metric := range model.GaugeMetrics {
 				field, ok := mstype.FieldByName(metric)
 				if !ok {
 					return
