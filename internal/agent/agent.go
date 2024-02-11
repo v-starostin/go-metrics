@@ -33,7 +33,7 @@ type Agent struct {
 	mu      sync.Mutex
 	logger  *zerolog.Logger
 	client  HTTPClient
-	Metrics []model.AgentMetric
+	metrics []model.AgentMetric
 	address string
 	key     string
 	counter *int64
@@ -50,12 +50,12 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 		key:     key,
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
-		Metrics: make([]model.AgentMetric, 0, len(model.RuntimeGaugeMetrics)+2+len(model.GopsutilGaugeMetrics)),
+		metrics: make([]model.AgentMetric, 0, len(model.RuntimeGaugeMetrics)+2+len(model.GopsutilGaugeMetrics)),
 	}
 }
 
 func (a *Agent) SendMetrics(ctx context.Context) error {
-	b, err := json.Marshal(a.Metrics)
+	b, err := json.Marshal(a.metrics)
 	if err != nil {
 		a.logger.Error().Err(err).Msg("Marshalling error")
 		return err
@@ -101,7 +101,7 @@ func (a *Agent) SendMetrics(ctx context.Context) error {
 		return err
 	}
 	res.Body.Close()
-	a.logger.Info().Any("metric", a.Metrics).Msg("Metrics are sent")
+	a.logger.Info().Any("metric", a.metrics).Msg("Metrics are sent")
 	return nil
 }
 
@@ -123,11 +123,11 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 					return
 				}
 				value := msvalue.FieldByName(metric).Interface()
-				a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value})
+				a.metrics = append(a.metrics, model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value})
 			}
 
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter})
+			a.metrics = append(a.metrics, model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()})
+			a.metrics = append(a.metrics, model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter})
 		case <-ctx.Done():
 			poll.Stop()
 			return
@@ -145,9 +145,9 @@ func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Durati
 			if err != nil {
 				return
 			}
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "TotalMemory", Value: int64(v.Total)})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "FreeMemory", Value: int64(v.Free)})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "CPUutilization1", Value: v.UsedPercent})
+			a.metrics = append(a.metrics, model.AgentMetric{MType: service.TypeGauge, ID: "TotalMemory", Value: int64(v.Total)})
+			a.metrics = append(a.metrics, model.AgentMetric{MType: service.TypeGauge, ID: "FreeMemory", Value: int64(v.Free)})
+			a.metrics = append(a.metrics, model.AgentMetric{MType: service.TypeGauge, ID: "CPUutilization1", Value: v.UsedPercent})
 		case <-ctx.Done():
 			poll.Stop()
 			return
