@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,11 +12,9 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -35,22 +30,20 @@ type Agent struct {
 	client  HTTPClient
 	Metrics []model.AgentMetric
 	address string
-	key     string
 	counter *int64
 	gw      *gzip.Writer
 }
 
-func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent {
+func New(logger *zerolog.Logger, client HTTPClient, address string) *Agent {
 	counter := new(int64)
 	*counter = 0
 	return &Agent{
 		logger:  logger,
 		client:  client,
 		address: address,
-		key:     key,
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
-		Metrics: make([]model.AgentMetric, 0, len(model.GaugeMetrics)+5),
+		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+2),
 	}
 }
 
@@ -82,16 +75,6 @@ func (a *Agent) SendMetrics(ctx context.Context) error {
 		a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
 		return err
 	}
-	if a.key != "" {
-		buf2 := *buf
-		h := hmac.New(sha256.New, []byte(a.key))
-		if _, err := h.Write(buf2.Bytes()); err != nil {
-			return err
-		}
-		d := h.Sum(nil)
-		a.logger.Info().Msgf("hash: %x", d)
-		req.Header.Add("HashSHA256", hex.EncodeToString(d))
-	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Content-Encoding", "gzip")
 
@@ -105,54 +88,23 @@ func (a *Agent) SendMetrics(ctx context.Context) error {
 	return nil
 }
 
-func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duration) {
-	poll := time.NewTicker(interval)
+func (a *Agent) CollectMetrics() {
+	*a.counter++
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	msvalue := reflect.ValueOf(memStats)
+	mstype := msvalue.Type()
 
-	for {
-		select {
-		case <-poll.C:
-			atomic.AddInt64(a.counter, 1)
-			var memStats runtime.MemStats
-			runtime.ReadMemStats(&memStats)
-			msvalue := reflect.ValueOf(memStats)
-			mstype := msvalue.Type()
-
-			for _, metric := range model.GaugeMetrics {
-				field, ok := mstype.FieldByName(metric)
-				if !ok {
-					return
-				}
-				value := msvalue.FieldByName(metric).Interface()
-				a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value})
-			}
-
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter})
-		case <-ctx.Done():
-			poll.Stop()
-			return
+	for index, metric := range model.GaugeMetrics {
+		field, ok := mstype.FieldByName(metric)
+		if !ok {
+			continue
 		}
+		value := msvalue.FieldByName(metric).Interface()
+		a.Metrics[index] = model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value}
 	}
-}
-
-func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Duration) {
-	poll := time.NewTicker(interval)
-
-	for {
-		select {
-		case <-poll.C:
-			v, err := mem.VirtualMemory()
-			if err != nil {
-				return
-			}
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "TotalMemory", Value: int64(v.Total)})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "FreeMemory", Value: int64(v.Free)})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "CPUutilization1", Value: v.UsedPercent})
-		case <-ctx.Done():
-			poll.Stop()
-			return
-		}
-	}
+	a.Metrics[len(model.GaugeMetrics)] = model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()}
+	a.Metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter}
 }
 
 func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error, intervals ...time.Duration) error {
