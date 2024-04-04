@@ -13,7 +13,6 @@ import (
 type GetMetrics struct {
 	logger  *zerolog.Logger
 	service Service
-	key     string
 }
 
 func NewGetMetrics(l *zerolog.Logger, srv Service) *GetMetrics {
@@ -40,10 +39,6 @@ func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := tmpl.Execute(&buf, metrics); err != nil {
 		writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 		return
-	}
-
-	if h.key != "" {
-		w.Header().Add("HashSHA256", sign(metrics, h.key))
 	}
 
 	w.Header().Add("Content-Type", "text/html")

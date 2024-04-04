@@ -12,7 +12,6 @@ import (
 type GetMetricV2 struct {
 	logger  *zerolog.Logger
 	service Service
-	key     string
 }
 
 func NewGetMetricV2(l *zerolog.Logger, s Service) *GetMetricV2 {
@@ -38,10 +37,6 @@ func (h *GetMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error().Err(err).Msg("GetMetric method error")
 		writeResponse(w, http.StatusNotFound, model.Error{Error: "Not found"})
 		return
-	}
-
-	if h.key != "" {
-		w.Header().Add("HashSHA256", sign(res, h.key))
 	}
 
 	writeResponse(w, http.StatusOK, res)

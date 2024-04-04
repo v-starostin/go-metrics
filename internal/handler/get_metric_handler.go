@@ -23,7 +23,6 @@ type Service interface {
 type GetMetric struct {
 	logger  *zerolog.Logger
 	service Service
-	key     string
 }
 
 func NewGetMetric(l *zerolog.Logger, srv Service) *GetMetric {
@@ -43,10 +42,6 @@ func (h *GetMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logger.Info().Any("metric", metric).Msg("Received metric from storage")
-
-	if h.key != "" {
-		w.Header().Add("HashSHA256", sign(metric, h.key))
-	}
 
 	switch mtype {
 	case service.TypeGauge:
