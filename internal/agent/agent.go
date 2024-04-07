@@ -117,17 +117,17 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 			msvalue := reflect.ValueOf(memStats)
 			mstype := msvalue.Type()
 
-			for _, metric := range model.GaugeMetrics {
+			for index, metric := range model.GaugeMetrics {
 				field, ok := mstype.FieldByName(metric)
 				if !ok {
 					return
 				}
 				value := msvalue.FieldByName(metric).Interface()
-				a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value})
+				a.Metrics[index] = model.AgentMetric{MType: service.TypeGauge, ID: field.Name, Value: value}
 			}
 
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter})
+			a.Metrics[len(model.GaugeMetrics)] = model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()}
+			a.Metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter}
 		case <-ctx.Done():
 			poll.Stop()
 			return
@@ -145,9 +145,9 @@ func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Durati
 			if err != nil {
 				return
 			}
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "TotalMemory", Value: int64(v.Total)})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "FreeMemory", Value: int64(v.Free)})
-			a.Metrics = append(a.Metrics, model.AgentMetric{MType: service.TypeGauge, ID: "CPUutilization1", Value: v.UsedPercent})
+			a.Metrics[len(model.GaugeMetrics)+2] = model.AgentMetric{MType: service.TypeGauge, ID: "TotalMemory", Value: int64(v.Total)}
+			a.Metrics[len(model.GaugeMetrics)+3] = model.AgentMetric{MType: service.TypeGauge, ID: "FreeMemory", Value: int64(v.Free)}
+			a.Metrics[len(model.GaugeMetrics)+4] = model.AgentMetric{MType: service.TypeGauge, ID: "CPUutilization1", Value: v.UsedPercent}
 		case <-ctx.Done():
 			poll.Stop()
 			return
@@ -184,5 +184,3 @@ func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.C
 	a.logger.Error().Err(err).Msg("Retrying... Failed")
 	return err
 }
-
-// test comment
