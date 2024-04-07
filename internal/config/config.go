@@ -88,7 +88,7 @@ func parseAgentFlags() Config {
 	serverAddress := flag.String("a", "localhost:8080", "HTTP server endpoint address")
 	reportInterval := flag.Int("r", 10, "report interval to the server (in seconds)")
 	pollInterval := flag.Int("p", 2, "interval to gather metrics (in seconds)")
-	key := flag.String("k", "", "")
+	key := flag.String("k", "", "key")
 	rateLimit := flag.Int("l", 1, "rate limit")
 	flag.Parse()
 
