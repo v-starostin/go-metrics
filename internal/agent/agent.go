@@ -34,7 +34,7 @@ type Agent struct {
 	logger  *zerolog.Logger
 	client  HTTPClient
 	Metrics []model.AgentMetric
-	ch      chan []model.AgentMetric
+	//ch      chan []model.AgentMetric
 	address string
 	key     string
 	counter *int64
@@ -52,13 +52,13 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
 		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+5),
-		ch:      make(chan []model.AgentMetric),
+		//ch:      make(chan []model.AgentMetric),
 	}
 }
 
-func (a *Agent) SendMetrics(ctx context.Context) error {
+func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMetric) error {
 	for {
-		m, ok := <-a.ch
+		m, ok := <-metrics
 		if !ok {
 			return nil
 		} else {
@@ -165,7 +165,7 @@ func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Durati
 }
 
 func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-chan []model.AgentMetric {
-	//ch := make(chan []model.AgentMetric)
+	ch := make(chan []model.AgentMetric)
 	wg := &sync.WaitGroup{}
 
 	poll := time.NewTicker(interval)
@@ -176,7 +176,7 @@ func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-ch
 		for {
 			select {
 			case <-poll.C:
-				a.ch <- a.Metrics
+				ch <- a.Metrics
 			case <-ctx.Done():
 				poll.Stop()
 				return
@@ -186,10 +186,10 @@ func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-ch
 
 	go func() {
 		wg.Wait()
-		close(a.ch)
+		close(ch)
 	}()
 
-	return a.ch
+	return ch
 }
 
 func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error, intervals ...time.Duration) error {

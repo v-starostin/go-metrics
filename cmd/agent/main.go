@@ -37,11 +37,12 @@ func main() {
 
 	go a.CollectRuntimeMetrics(ctx, time.Duration(cfg.PollInterval))
 	go a.CollectGopsutilMetrics(ctx, time.Duration(cfg.PollInterval))
-	go a.PrepareMetrics(ctx, time.Duration(cfg.ReportInterval))
+
+	metrics := a.PrepareMetrics(ctx, time.Duration(cfg.ReportInterval))
 
 	for i := 0; i < cfg.RateLimit; i++ {
 		go a.Retry(ctx, 3, func(ctx context.Context) error {
-			return a.SendMetrics(ctx)
+			return a.SendMetrics(ctx, metrics)
 		}, 1*time.Second, 3*time.Second, 5*time.Second)
 	}
 
