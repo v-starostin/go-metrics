@@ -14,6 +14,7 @@ import (
 	"github.com/v-starostin/go-metrics/internal/config"
 )
 
+// test comment
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
