@@ -108,8 +108,8 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 				return err
 			}
 			res.Body.Close()
-			a.logger.Info().Any("metric", a.Metrics).Msg("Metrics are sent")
-			return nil
+			a.logger.Info().Any("metric", m).Msg("Metrics are sent")
+			//return nil
 		}
 	}
 }
@@ -137,6 +137,7 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 
 			a.Metrics[len(model.GaugeMetrics)] = model.AgentMetric{MType: service.TypeGauge, ID: "RandomValue", Value: rand.Float64()}
 			a.Metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter}
+			a.logger.Info().Any("metric (collect)", a.Metrics).Msg("metric (collect)")
 		case <-ctx.Done():
 			poll.Stop()
 			return
@@ -190,6 +191,17 @@ func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-ch
 	}()
 
 	return ch
+}
+
+func (a *Agent) PrintMetrics(ctx context.Context, metrics <-chan []model.AgentMetric) error {
+	for {
+		m, ok := <-metrics
+		if !ok {
+			return nil
+		} else {
+			a.logger.Info().Msgf("metrics: %+v", m)
+		}
+	}
 }
 
 func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error, intervals ...time.Duration) error {

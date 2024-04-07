@@ -35,15 +35,17 @@ func main() {
 		Int("reportInterval", cfg.ReportInterval).
 		Msg("Started collecting metrics")
 
-	go a.CollectRuntimeMetrics(ctx, time.Duration(cfg.PollInterval))
-	go a.CollectGopsutilMetrics(ctx, time.Duration(cfg.PollInterval))
+	go a.CollectRuntimeMetrics(ctx, time.Duration(cfg.PollInterval)*time.Second)
+	go a.CollectGopsutilMetrics(ctx, time.Duration(cfg.PollInterval)*time.Second)
 
-	metrics := a.PrepareMetrics(ctx, time.Duration(cfg.ReportInterval))
+	metrics := a.PrepareMetrics(ctx, time.Duration(cfg.ReportInterval)*time.Second)
 
 	for i := 0; i < cfg.RateLimit; i++ {
-		go a.Retry(ctx, 3, func(ctx context.Context) error {
-			return a.SendMetrics(ctx, metrics)
-		}, 1*time.Second, 3*time.Second, 5*time.Second)
+		//go a.Retry(ctx, 3, func(ctx context.Context) error {
+		//	return a.SendMetrics(ctx, metrics)
+		go a.SendMetrics(ctx, metrics)
+		//go a.PrintMetrics(ctx, metrics)
+		//}, 1*time.Second, 3*time.Second, 5*time.Second)
 	}
 
 	<-ctx.Done()
