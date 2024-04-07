@@ -50,7 +50,7 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 		key:     key,
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
-		Metrics: make([]model.AgentMetric, 0, len(model.GaugeMetrics)+5),
+		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+5),
 	}
 }
 
