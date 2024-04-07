@@ -34,7 +34,6 @@ type Agent struct {
 	logger  *zerolog.Logger
 	client  HTTPClient
 	Metrics []model.AgentMetric
-	//ch      chan []model.AgentMetric
 	address string
 	key     string
 	counter *int64
@@ -52,7 +51,6 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 		counter: counter,
 		gw:      gzip.NewWriter(io.Discard),
 		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+5),
-		//ch:      make(chan []model.AgentMetric),
 	}
 }
 
@@ -115,11 +113,11 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 }
 
 func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duration) {
-	poll := time.NewTicker(interval)
+	t := time.NewTicker(interval)
 
 	for {
 		select {
-		case <-poll.C:
+		case <-t.C:
 			atomic.AddInt64(a.counter, 1)
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
@@ -139,18 +137,18 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 			a.Metrics[len(model.GaugeMetrics)+1] = model.AgentMetric{MType: service.TypeCounter, ID: "PollCount", Delta: *a.counter}
 			a.logger.Info().Any("metric (collect)", a.Metrics).Msg("metric (collect)")
 		case <-ctx.Done():
-			poll.Stop()
+			t.Stop()
 			return
 		}
 	}
 }
 
 func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Duration) {
-	poll := time.NewTicker(interval)
+	t := time.NewTicker(interval)
 
 	for {
 		select {
-		case <-poll.C:
+		case <-t.C:
 			v, err := mem.VirtualMemory()
 			if err != nil {
 				return
@@ -159,7 +157,7 @@ func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Durati
 			a.Metrics[len(model.GaugeMetrics)+3] = model.AgentMetric{MType: service.TypeGauge, ID: "FreeMemory", Value: int64(v.Free)}
 			a.Metrics[len(model.GaugeMetrics)+4] = model.AgentMetric{MType: service.TypeGauge, ID: "CPUutilization1", Value: v.UsedPercent}
 		case <-ctx.Done():
-			poll.Stop()
+			t.Stop()
 			return
 		}
 	}
@@ -168,18 +166,17 @@ func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Durati
 func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-chan []model.AgentMetric {
 	ch := make(chan []model.AgentMetric)
 	wg := &sync.WaitGroup{}
-
-	poll := time.NewTicker(interval)
+	t := time.NewTicker(interval)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for {
 			select {
-			case <-poll.C:
+			case <-t.C:
 				ch <- a.Metrics
 			case <-ctx.Done():
-				poll.Stop()
+				t.Stop()
 				return
 			}
 		}
@@ -191,17 +188,6 @@ func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-ch
 	}()
 
 	return ch
-}
-
-func (a *Agent) PrintMetrics(ctx context.Context, metrics <-chan []model.AgentMetric) error {
-	for {
-		m, ok := <-metrics
-		if !ok {
-			return nil
-		} else {
-			a.logger.Info().Msgf("metrics: %+v", m)
-		}
-	}
 }
 
 func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error, intervals ...time.Duration) error {
@@ -233,5 +219,3 @@ func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.C
 	a.logger.Error().Err(err).Msg("Retrying... Failed")
 	return err
 }
-
-// test comment
