@@ -43,8 +43,6 @@ func main() {
 	for i := 0; i < cfg.RateLimit; i++ {
 		go a.Retry(ctx, 3, func(ctx context.Context) error {
 			return a.SendMetrics(ctx, metrics)
-			//go a.SendMetrics(ctx, metrics)
-			//go a.PrintMetrics(ctx, metrics)
 		}, 1*time.Second, 3*time.Second, 5*time.Second)
 	}
 
