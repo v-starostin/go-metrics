@@ -167,6 +167,7 @@ func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-ch
 	ch := make(chan []model.AgentMetric)
 	wg := &sync.WaitGroup{}
 	t := time.NewTicker(interval)
+	defer t.Stop()
 
 	wg.Add(1)
 	go func() {
