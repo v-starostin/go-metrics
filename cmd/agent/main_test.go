@@ -106,7 +106,7 @@ func TestRetry(t *testing.T) {
 	})
 
 	t.Run("bad case - context deadline exceeded", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
 		defer cancel()
 
 		err := a.Retry(ctx, 3, func(ctx context.Context) error {
@@ -117,7 +117,7 @@ func TestRetry(t *testing.T) {
 	})
 
 	t.Run("bad case - context canceled", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
 		err := a.Retry(ctx, 3, func(ctx context.Context) error {
@@ -126,5 +126,75 @@ func TestRetry(t *testing.T) {
 		}, 10*time.Millisecond, 20*time.Millisecond, 30*time.Millisecond)
 
 		assert.EqualError(t, err, "context canceled")
+	})
+}
+
+func TestCollectGopsutilMetrics(t *testing.T) {
+	ctx := context.Background()
+	client := &mock.HTTPClient{}
+
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+
+	t.Run("context canceled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			a.CollectGopsutilMetrics(ctx, 15*time.Millisecond)
+		}()
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			cancel()
+		}()
+		wg.Wait()
+	})
+
+	t.Run("context deadline exceeded", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+		defer cancel()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			a.CollectGopsutilMetrics(ctx, 15*time.Millisecond)
+		}()
+		wg.Wait()
+	})
+}
+
+func TestCollectRuntimeMetrics(t *testing.T) {
+	ctx := context.Background()
+	client := &mock.HTTPClient{}
+
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+
+	t.Run("context canceled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			a.CollectRuntimeMetrics(ctx, 15*time.Millisecond)
+		}()
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			cancel()
+		}()
+		wg.Wait()
+	})
+
+	t.Run("context deadline exceeded", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+		defer cancel()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			a.CollectRuntimeMetrics(ctx, 15*time.Millisecond)
+		}()
+		wg.Wait()
 	})
 }

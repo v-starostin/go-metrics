@@ -107,7 +107,6 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 			}
 			res.Body.Close()
 			a.logger.Info().Any("metric", m).Msg("Metrics are sent")
-			//return nil
 		}
 	}
 }
