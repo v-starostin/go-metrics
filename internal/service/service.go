@@ -15,7 +15,12 @@ const (
 	TypeGauge   = "gauge"
 )
 
-const maxRetries = 3
+const (
+	maxRetries  = 3
+	firstRetry  = 1 * time.Second
+	secondRetry = 3 * time.Second
+	thirdRetry  = 5 * time.Second
+)
 
 var ErrParseMetric = errors.New("failed to parse metric: wrong type")
 
@@ -50,7 +55,7 @@ func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
 			return err
 		}
 		return nil
-	}, 1*time.Second, 3*time.Second, 5*time.Second)
+	}, firstRetry, secondRetry, thirdRetry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load metric %s: %w", mname, err)
 	}
@@ -67,7 +72,7 @@ func (s *Service) GetMetrics() (model.Data, error) {
 			return err
 		}
 		return nil
-	}, 1*time.Second, 3*time.Second, 5*time.Second)
+	}, firstRetry, secondRetry, thirdRetry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load metrics: %w", err)
 	}
@@ -85,7 +90,7 @@ func (s *Service) SaveMetric(m model.Metric) error {
 			return err
 		}
 		return nil
-	}, 1*time.Second, 3*time.Second, 5*time.Second)
+	}, firstRetry, secondRetry, thirdRetry)
 	if err != nil {
 		return fmt.Errorf("failed to store data: %w", err)
 	}
@@ -99,7 +104,7 @@ func (s *Service) SaveMetrics(m []model.Metric) error {
 			return err
 		}
 		return nil
-	}, 1*time.Second, 3*time.Second, 5*time.Second)
+	}, firstRetry, secondRetry, thirdRetry)
 	if err != nil {
 		return fmt.Errorf("failed to store data: %w", err)
 	}

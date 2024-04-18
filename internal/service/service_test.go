@@ -173,3 +173,73 @@ func (suite *serviceTestSuite) TestServiceSave() {
 		})
 	}
 }
+
+func (suite *serviceTestSuite) TestServiceSave2() {
+	f1, i := new(float64), new(int64)
+	*f1, *i = 2.0, 2
+	tt := []struct {
+		name     string
+		m        []model.Metric
+		expected string
+		err      error
+	}{
+		{
+			name: "good case (gauge)",
+			m: []model.Metric{
+				{
+					MType: service.TypeGauge,
+					ID:    "metric1",
+					Value: f1,
+				},
+			},
+		},
+		{
+			name: "good case (counter)",
+			m: []model.Metric{
+				{
+					MType: service.TypeCounter,
+					ID:    "metric1",
+					Delta: i,
+				},
+			},
+		},
+		{
+			name: "failed to store data (counter)",
+			m: []model.Metric{
+				{
+					MType: service.TypeCounter,
+					ID:    "metric1",
+					Delta: i,
+				},
+			},
+			err:      errors.New("err"),
+			expected: "failed to store data: err",
+		},
+		{
+			name: "failed to store data (gauge)",
+			m: []model.Metric{
+				{
+					MType: service.TypeGauge,
+					ID:    "metric1",
+					Value: f1,
+				},
+			},
+			err:      errors.New("err"),
+			expected: "failed to store data: err",
+		},
+	}
+
+	for _, test := range tt {
+		suite.Run(test.name, func() {
+			mockCall := suite.repo.On("StoreMetrics", test.m).Return(test.err)
+
+			err := suite.service.SaveMetrics(test.m)
+			if test.expected != "" {
+				suite.EqualError(err, test.expected)
+			} else {
+				suite.NoError(err)
+			}
+			mockCall.Unset()
+		})
+	}
+}
