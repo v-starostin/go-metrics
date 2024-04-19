@@ -30,3 +30,9 @@ func TestSign(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkSign(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		sign("value", "key")
+	}
+}
