@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -57,7 +58,10 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMetric) error {
 	for {
 		m, ok := <-metrics
+		//log.Println("m:", m)
+
 		if !ok {
+			//log.Println("finish, channel closed")
 			return nil
 		} else {
 			b, err := json.Marshal(m)
@@ -117,6 +121,7 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 	for {
 		select {
 		case <-t.C:
+			log.Println("triggered")
 			atomic.AddInt64(a.counter, 1)
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
@@ -137,6 +142,7 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 			a.logger.Info().Any("metric (collect)", a.Metrics).Msg("metric (collect)")
 		case <-ctx.Done():
 			t.Stop()
+			log.Println("done")
 			return
 		}
 	}
