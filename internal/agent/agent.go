@@ -7,7 +7,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -56,14 +55,14 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 
 func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMetric) error {
 	for {
-		m, ok := <-metrics
-		//log.Println("m:", m)
-
+		var m model.AgentMetrics
+		var ok bool
+		m, ok = <-metrics
 		if !ok {
-			//log.Println("finish, channel closed")
 			return nil
 		} else {
-			b, err := json.Marshal(m)
+			//b, err := json.Marshal(m)
+			b, err := m.MarshalJSON()
 			if err != nil {
 				a.logger.Error().Err(err).Msg("Marshalling error")
 				return err

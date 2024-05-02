@@ -18,26 +18,30 @@ import (
 )
 
 func BenchmarkCollectRuntimeMetrics(b *testing.B) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
 	client := &mock.HTTPClient{}
 	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		a.CollectRuntimeMetrics(ctx, 15*time.Millisecond)
+		b.StopTimer()
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		b.StartTimer()
+		a.CollectRuntimeMetrics(ctx, 10*time.Millisecond)
 	}
 }
 
 func BenchmarkCollectGopsutilMetrics(b *testing.B) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
 	client := &mock.HTTPClient{}
 	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		a.CollectGopsutilMetrics(ctx, 15*time.Millisecond)
+		b.StopTimer()
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		b.StartTimer()
+		a.CollectGopsutilMetrics(ctx, 10*time.Millisecond)
 	}
 }
 
@@ -57,7 +61,10 @@ func BenchmarkSendMetrics(b *testing.B) {
 		{MType: "gauge", ID: "metric9", Value: float64(19)},
 	}
 
-	var mm = [][]model.AgentMetric{metrics, metrics, metrics, metrics, metrics}
+	var mm = make([][]model.AgentMetric, 0, 1000)
+	for range 1000 {
+		mm = append(mm, metrics)
+	}
 
 	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
 
