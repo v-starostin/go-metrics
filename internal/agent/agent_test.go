@@ -62,7 +62,7 @@ func BenchmarkSendMetrics(b *testing.B) {
 	}
 
 	var mm = make([][]model.AgentMetric, 0, 1000)
-	for range 1000 {
+	for i := 0; i < 1000; i++ {
 		mm = append(mm, metrics)
 	}
 
