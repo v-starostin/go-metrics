@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -121,7 +120,6 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 	for {
 		select {
 		case <-t.C:
-			log.Println("triggered")
 			atomic.AddInt64(a.counter, 1)
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
@@ -142,7 +140,6 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 			a.logger.Info().Any("metric (collect)", a.Metrics).Msg("metric (collect)")
 		case <-ctx.Done():
 			t.Stop()
-			log.Println("done")
 			return
 		}
 	}
