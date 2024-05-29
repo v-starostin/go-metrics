@@ -39,9 +39,9 @@ func NewServer(l *zerolog.Logger, addr string) *Server {
 }
 
 func (s *Server) RegisterHandlers(srv handler.Service, key string) {
-	getMetricHandler := handler.NewGetMetric(s.logger, srv)
-	getMetricsHandler := handler.NewGetMetrics(s.logger, srv)
-	getMetricV2Handler := handler.NewGetMetricV2(s.logger, srv)
+	getMetricHandler := handler.NewGetMetric(s.logger, srv, "key")
+	getMetricsHandler := handler.NewGetMetrics(s.logger, srv, "key")
+	getMetricV2Handler := handler.NewGetMetricV2(s.logger, srv, "key")
 	postMetricHandler := handler.NewPostMetric(s.logger, srv)
 	postMetricV2Handler := handler.NewPostMetricV2(s.logger, srv)
 	postMetrics := handler.NewPostMetrics(s.logger, srv)

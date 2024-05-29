@@ -18,10 +18,11 @@ type GetMetrics struct {
 }
 
 // NewGetMetrics creates a new handler.
-func NewGetMetrics(l *zerolog.Logger, srv Service) *GetMetrics {
+func NewGetMetrics(l *zerolog.Logger, srv Service, k string) *GetMetrics {
 	return &GetMetrics{
 		logger:  l,
 		service: srv,
+		key:     k,
 	}
 }
 
