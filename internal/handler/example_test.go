@@ -278,7 +278,7 @@ func ExampleGetMetric_ServeHTTP_notFound() {
 
 	f := new(float64)
 	*f = 1.23
-	m := &model.Metric{MType: "gauge", ID: "metric1", Value: f}
+	m := &model.Metric{MType: "gauge", ID: "metric1"}
 	srv.On("GetMetric", m.MType, m.ID).Once().Return(nil, errors.New("err"))
 
 	r.ServeHTTP(rr, req)
