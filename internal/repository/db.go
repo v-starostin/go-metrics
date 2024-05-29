@@ -12,11 +12,13 @@ import (
 
 var errNotSupported = errors.New("not supported when DB is enabled")
 
+// Storage represents a storage
 type Storage struct {
 	db     *sql.DB
 	logger *zerolog.Logger
 }
 
+// NewStorage creates a new Storage.
 func NewStorage(logger *zerolog.Logger, db *sql.DB) *Storage {
 	return &Storage{
 		logger: logger,
@@ -24,6 +26,7 @@ func NewStorage(logger *zerolog.Logger, db *sql.DB) *Storage {
 	}
 }
 
+// Load retrieves a specific metric by its type and name from the database.
 func (s *Storage) Load(mtype, mname string) (*model.Metric, error) {
 	var mID, mType string
 	var mValue sql.NullFloat64
@@ -43,6 +46,7 @@ func (s *Storage) Load(mtype, mname string) (*model.Metric, error) {
 	}, nil
 }
 
+// LoadAll retrieves all metrics from the database.
 func (s *Storage) LoadAll() (model.Data, error) {
 	rows, err := s.db.Query("SELECT id,type,value,delta FROM metrics")
 	if err != nil {
@@ -88,6 +92,7 @@ func (s *Storage) LoadAll() (model.Data, error) {
 	return result, nil
 }
 
+// StoreMetrics saves multiple metrics to the database.
 func (s *Storage) StoreMetrics(metrics []model.Metric) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -166,6 +171,7 @@ func store(tx *sql.Tx, logger *zerolog.Logger, m model.Metric) error {
 	return nil
 }
 
+// StoreMetric saves a single metric to the database.
 func (s *Storage) StoreMetric(m model.Metric) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -184,6 +190,7 @@ func (s *Storage) StoreMetric(m model.Metric) error {
 	return nil
 }
 
+// PingStorage checks the connection to the storage.
 func (s *Storage) PingStorage() error {
 	return s.db.Ping()
 }

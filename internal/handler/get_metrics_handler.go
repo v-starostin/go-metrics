@@ -10,12 +10,14 @@ import (
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
+// GetMetrics is a struct that handles HTTP requests for retrieving metrics.
 type GetMetrics struct {
 	logger  *zerolog.Logger
 	service Service
 	key     string
 }
 
+// NewGetMetrics creates a new handler.
 func NewGetMetrics(l *zerolog.Logger, srv Service) *GetMetrics {
 	return &GetMetrics{
 		logger:  l,
@@ -23,6 +25,7 @@ func NewGetMetrics(l *zerolog.Logger, srv Service) *GetMetrics {
 	}
 }
 
+// ServeHTTP handles HTTP requests for retrieving a specific metric.
 func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metrics, err := h.service.GetMetrics()
 	if err != nil {

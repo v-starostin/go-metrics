@@ -24,10 +24,12 @@ import (
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
+// HTTPClient defines a method for making HTTP requests.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// Agent represents an agent that collects and sends metrics.
 type Agent struct {
 	mu      sync.Mutex
 	logger  *zerolog.Logger
@@ -39,6 +41,7 @@ type Agent struct {
 	gw      *gzip.Writer
 }
 
+// New creates a new Agent with the provided logger, HTTP client, address, and key.
 func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent {
 	counter := new(int64)
 	*counter = 0
@@ -53,6 +56,9 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent 
 	}
 }
 
+// SendMetrics sends the collected metrics to the configured address.
+// It reads metrics from the provided channel and sends them in a compressed JSON format.
+// If an error occurs during the process, it is logged and returned.
 func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMetric) error {
 	for {
 		var m model.AgentMetrics
@@ -113,6 +119,7 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 	}
 }
 
+// CollectRuntimeMetrics collects runtime metrics at a specified interval and stores them in the Agent's Metrics slice.
 func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duration) {
 	t := time.NewTicker(interval)
 
@@ -144,6 +151,7 @@ func (a *Agent) CollectRuntimeMetrics(ctx context.Context, interval time.Duratio
 	}
 }
 
+// CollectGopsutilMetrics collects Gopsutil metrics at a specified interval and stores them in the Agent's Metrics slice.
 func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Duration) {
 	t := time.NewTicker(interval)
 
@@ -164,6 +172,7 @@ func (a *Agent) CollectGopsutilMetrics(ctx context.Context, interval time.Durati
 	}
 }
 
+// PrepareMetrics sends metrics to a channel.
 func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-chan []model.AgentMetric {
 	ch := make(chan []model.AgentMetric)
 	wg := &sync.WaitGroup{}
@@ -191,6 +200,7 @@ func (a *Agent) PrepareMetrics(ctx context.Context, interval time.Duration) <-ch
 	return ch
 }
 
+// Retry attempts to execute the given function up to a specified number of retries, with specified intervals between each retry.
 func (a *Agent) Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error, intervals ...time.Duration) error {
 	var err error
 	err = fn(ctx)
