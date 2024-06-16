@@ -85,7 +85,7 @@ func CheckHash(key string) func(next http.Handler) http.Handler {
 				writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad Request"})
 				return
 			}
-			if _, err := h.Write(b); err != nil {
+			if _, err = h.Write(b); err != nil {
 				writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal Server Error"})
 				return
 			}
