@@ -13,6 +13,7 @@ import (
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
+// MemStorage represents an in-memory storage for metrics.
 type MemStorage struct {
 	mu              sync.RWMutex
 	logger          *zerolog.Logger
@@ -21,6 +22,7 @@ type MemStorage struct {
 	storageFileName string
 }
 
+// NewMemStorage creates a new MemStorage
 func NewMemStorage(logger *zerolog.Logger, interval int, file string) *MemStorage {
 	return &MemStorage{
 		logger:          logger,
@@ -30,6 +32,7 @@ func NewMemStorage(logger *zerolog.Logger, interval int, file string) *MemStorag
 	}
 }
 
+// RestoreFromFile restores data from a file.
 func (s *MemStorage) RestoreFromFile() error {
 	_, err := os.Stat(s.storageFileName)
 	if errors.Is(err, os.ErrNotExist) {
@@ -50,6 +53,7 @@ func (s *MemStorage) RestoreFromFile() error {
 	return nil
 }
 
+// WriteToFile writes data to a file.
 func (s *MemStorage) WriteToFile() error {
 	file, err := os.OpenFile(s.storageFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
@@ -72,12 +76,14 @@ func (s *MemStorage) WriteToFile() error {
 	return nil
 }
 
+// LoadAll retrieves all metrics from the in-memory storage.
 func (s *MemStorage) LoadAll() (model.Data, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.data, nil
 }
 
+// Load retrieves a specific metric by its type and name.
 func (s *MemStorage) Load(mtype, mname string) (*model.Metric, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -95,6 +101,7 @@ func (s *MemStorage) Load(mtype, mname string) (*model.Metric, error) {
 	return &mvalue, nil
 }
 
+// StoreMetric saves a single metric
 func (s *MemStorage) StoreMetric(m model.Metric) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -132,6 +139,7 @@ func (s *MemStorage) StoreMetric(m model.Metric) error {
 	return nil
 }
 
+// StoreMetrics saves multiple metrics.
 func (s *MemStorage) StoreMetrics(metrics []model.Metric) error {
 	var err error
 	for _, metric := range metrics {

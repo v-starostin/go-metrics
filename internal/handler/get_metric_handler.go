@@ -10,6 +10,7 @@ import (
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
+// Service  defines methods for saving, retrieving, and managing metrics.
 type Service interface {
 	SaveMetric(m model.Metric) error
 	SaveMetrics(m []model.Metric) error
@@ -20,19 +21,23 @@ type Service interface {
 	RestoreFromFile() error
 }
 
+// GetMetric is a struct that handles HTTP requests for retrieving metrics.
 type GetMetric struct {
 	logger  *zerolog.Logger
 	service Service
 	key     string
 }
 
-func NewGetMetric(l *zerolog.Logger, srv Service) *GetMetric {
+// NewGetMetric creates a new handler.
+func NewGetMetric(l *zerolog.Logger, srv Service, k string) *GetMetric {
 	return &GetMetric{
 		logger:  l,
 		service: srv,
+		key:     k,
 	}
 }
 
+// ServeHTTP handles HTTP requests for retrieving a specific metric.
 func (h *GetMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mtype := chi.URLParam(r, "type")
 	mname := chi.URLParam(r, "name")

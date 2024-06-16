@@ -21,12 +21,16 @@ import (
 )
 
 const (
-	address         = "http://0.0.0.0:8080"
-	updatePath      = "/update/gauge/metric1/1.23"
-	getGaugePath    = "/value/gauge/metric1"
-	getCounterPath  = "/value/counter/metric1"
-	getAllPath      = "/"
-	wrongMetricType = "/update/gauges/metric1/1.23"
+	address           = "http://0.0.0.0:8080"
+	updatePathGauge   = "/update/gauge/metric1/1.23"
+	updatePathCounter = "/update/counter/metric1/1"
+	getGaugePath      = "/value/gauge/metric1"
+	getCounterPath    = "/value/counter/metric1"
+	getAllPath        = "/"
+	wrongMetricType   = "/update/gauges/metric1/1.23"
+	postMetrics       = "/updates/"
+	pingStorage       = "/ping"
+	key               = "key"
 )
 
 type handlerTestSuite struct {
@@ -39,10 +43,10 @@ func (suite *handlerTestSuite) SetupTest() {
 	l := zerolog.Logger{}
 	srv := &mock.Service{}
 
-	getMetricHandler := handler.NewGetMetric(&l, srv)
-	getMetricsHandler := handler.NewGetMetrics(&l, srv)
+	getMetricHandler := handler.NewGetMetric(&l, srv, key)
+	getMetricsHandler := handler.NewGetMetrics(&l, srv, key)
 	postMetricHandler := handler.NewPostMetric(&l, srv)
-	getMetricV2Handler := handler.NewGetMetricV2(&l, srv)
+	getMetricV2Handler := handler.NewGetMetricV2(&l, srv, key)
 	postMetricV2Handler := handler.NewPostMetricV2(&l, srv)
 
 	r := chi.NewRouter()
@@ -61,7 +65,7 @@ func TestHandler(t *testing.T) {
 }
 
 func (suite *handlerTestSuite) TestHandlerServiceOK() {
-	req, err := http.NewRequest(http.MethodPost, address+updatePath, nil)
+	req, err := http.NewRequest(http.MethodPost, address+updatePathGauge, nil)
 	suite.NoError(err)
 
 	rr := httptest.NewRecorder()
@@ -82,7 +86,7 @@ func (suite *handlerTestSuite) TestHandlerServiceOK() {
 }
 
 func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
-	req, err := http.NewRequest(http.MethodPost, address+updatePath, nil)
+	req, err := http.NewRequest(http.MethodPost, address+updatePathGauge, nil)
 	suite.NoError(err)
 
 	rr := httptest.NewRecorder()
@@ -102,7 +106,7 @@ func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
 }
 
 func (suite *handlerTestSuite) TestHandlerServiceError() {
-	req, err := http.NewRequest(http.MethodPost, address+updatePath, nil)
+	req, err := http.NewRequest(http.MethodPost, address+updatePathGauge, nil)
 	suite.NoError(err)
 
 	rr := httptest.NewRecorder()

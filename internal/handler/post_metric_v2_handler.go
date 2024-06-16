@@ -9,11 +9,13 @@ import (
 	"github.com/v-starostin/go-metrics/internal/model"
 )
 
+// PostMetricV2 is a struct that handles HTTP request for posting the metrics.
 type PostMetricV2 struct {
 	logger  *zerolog.Logger
 	service Service
 }
 
+// NewPostMetricV2 creates a new handler.
 func NewPostMetricV2(l *zerolog.Logger, srv Service) *PostMetricV2 {
 	return &PostMetricV2{
 		logger:  l,
@@ -21,6 +23,7 @@ func NewPostMetricV2(l *zerolog.Logger, srv Service) *PostMetricV2 {
 	}
 }
 
+// ServeHTTP handles HTTP requests for retrieving a specific metric.
 func (h *PostMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Any("req", r.Body).Msg("Request body")
 

@@ -19,3 +19,6 @@ type Error struct {
 }
 
 type Data map[string]map[string]Metric
+
+//easyjson:json
+type AgentMetrics []AgentMetric
