@@ -58,8 +58,7 @@ Includes analyzers from go-critic or other public analyzer packages of your choi
 package main
 
 import (
-	"strings"
-
+	gocritic "github.com/go-critic/go-critic/checkers/analyzer"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/asmdecl"
@@ -111,7 +110,7 @@ import (
 	"honnef.co/go/tools/staticcheck"
 	"honnef.co/go/tools/stylecheck"
 
-	"github.com/v-starostin/go-metrics/internal/analyzer"
+	"github.com/v-starostin/go-metrics/cmd/staticlint/analyzer"
 )
 
 func main() {
@@ -167,17 +166,7 @@ func main() {
 
 	// Add staticcheck SA analyzers
 	for _, v := range staticcheck.Analyzers {
-		if strings.HasPrefix(v.Analyzer.Name, "SA") {
-			analyzers = append(analyzers, v.Analyzer)
-		}
-	}
-
-	// Add one analyzer from stylecheck
-	for _, v := range stylecheck.Analyzers {
-		if !strings.HasPrefix(v.Analyzer.Name, "SA") {
-			analyzers = append(analyzers, v.Analyzer)
-			break
-		}
+		analyzers = append(analyzers, v.Analyzer)
 	}
 
 	// Add one analyzer from stylecheck, simple, and quickfix
@@ -187,15 +176,10 @@ func main() {
 		quickfix.Analyzers[0].Analyzer,
 	)
 
-	// Add two public analyzers (e.g., from go-critic)
-	// Make sure to import the necessary packages for additional analyzers
-	// go get github.com/go-critic/go-critic/checkers
-	// import "github.com/go-critic/go-critic/checkers/analyzer"
-
-	// analyzers = append(analyzers,
-	//     analyzer.Analyzer, // Replace with actual analyzers
-	//     anotherAnalyzer.Analyzer,
-	// )
+	// Add public analyzer
+	analyzers = append(analyzers,
+		gocritic.Analyzer,
+	)
 
 	// Add custom analyzer
 	analyzers = append(analyzers, analyzer.OSExit)

@@ -7,5 +7,5 @@ import (
 )
 
 func TestOSExitAnalyzer(t *testing.T) {
-	analysistest.Run(t, analysistest.TestData(), OSExitAnalyzer, "./...")
+	analysistest.Run(t, analysistest.TestData(), OSExit, "./...")
 }

@@ -2,6 +2,6 @@ package pkg1
 
 import "os"
 
-func osExitFunc() {
+func osExit() {
 	os.Exit(0) // want
 }
