@@ -15,8 +15,17 @@ import (
 	"github.com/v-starostin/go-metrics/internal/config"
 )
 
+var (
+	BuildVersion string
+	BuildData    string
+	BuildCommit  string
+)
+
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	logger.Info().Msgf("Build version: %s", getValue(BuildVersion))
+	logger.Info().Msgf("Build data: %s", getValue(BuildData))
+	logger.Info().Msgf("Build commit: %s", getValue(BuildCommit))
 
 	cfg, err := config.NewAgent()
 	if err != nil {
@@ -49,4 +58,11 @@ func main() {
 
 	<-ctx.Done()
 	logger.Info().Msg("Finished collecting metrics")
+}
+
+func getValue(s string) string {
+	if s == "" {
+		return "N/A"
+	}
+	return s
 }

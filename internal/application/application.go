@@ -26,6 +26,12 @@ import (
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
+var (
+	BuildVersion string
+	BuildData    string
+	BuildCommit  string
+)
+
 type Server struct {
 	srv    *http.Server
 	logger *zerolog.Logger
@@ -95,6 +101,9 @@ func ConnectDB(cfg *config.Config) (*sql.DB, error) {
 
 func Run() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	logger.Info().Msgf("Build version: %s", getValue(BuildVersion))
+	logger.Info().Msgf("Build data: %s", getValue(BuildData))
+	logger.Info().Msgf("Build commit: %s", getValue(BuildCommit))
 
 	cfg, err := config.NewServer()
 	if err != nil {
@@ -190,4 +199,11 @@ func (s *Server) HandleShutdown(ctx context.Context, wg *sync.WaitGroup, f *hand
 	}
 
 	s.logger.Info().Msg("Server stopped gracefully")
+}
+
+func getValue(s string) string {
+	if s == "" {
+		return "N/A"
+	}
+	return s
 }
