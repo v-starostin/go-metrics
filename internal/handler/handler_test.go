@@ -315,7 +315,6 @@ func (suite *handlerTestSuite) TestHandlerPostMetricOK() {
 	m := model.Metric{MType: "gauge", ID: "metric1", Value: f}
 	b, err := json.Marshal(m)
 	suite.NoError(err)
-	//b := []byte(`{"id": "metric1", "type": "gauge", "value": 1.25}`)
 	req, err := http.NewRequest(http.MethodPost, address+"/update/", bytes.NewReader(b))
 	suite.NoError(err)
 
