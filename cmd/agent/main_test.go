@@ -27,7 +27,7 @@ func TestSendMetrics(t *testing.T) {
 		{MType: "gauge", ID: "metric1", Value: float64(10)},
 	}
 
-	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	t.Run("good case", func(t *testing.T) {
 		ch := make(chan []model.AgentMetric)
@@ -73,7 +73,7 @@ func TestRetry(t *testing.T) {
 	ctx := context.Background()
 	client := &mock.HTTPClient{}
 
-	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	t.Run("good case", func(t *testing.T) {
 		err := a.Retry(ctx, 3, func(ctx context.Context) error {
@@ -133,7 +133,7 @@ func TestCollectGopsutilMetrics(t *testing.T) {
 	ctx := context.Background()
 	client := &mock.HTTPClient{}
 
-	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	t.Run("context canceled", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
@@ -168,7 +168,7 @@ func TestCollectRuntimeMetrics(t *testing.T) {
 	ctx := context.Background()
 	client := &mock.HTTPClient{}
 
-	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	t.Run("context canceled", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
