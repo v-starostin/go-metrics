@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"crypto/rsa"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/config"
+	"github.com/v-starostin/go-metrics/internal/crypto"
 	"github.com/v-starostin/go-metrics/internal/handler"
 	"github.com/v-starostin/go-metrics/internal/repository"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -44,13 +46,13 @@ func NewServer(l *zerolog.Logger, addr string) *Server {
 	}
 }
 
-func (s *Server) RegisterHandlers(srv handler.Service, key string) {
-	getMetricHandler := handler.NewGetMetric(s.logger, srv, "key")
-	getMetricsHandler := handler.NewGetMetrics(s.logger, srv, "key")
-	getMetricV2Handler := handler.NewGetMetricV2(s.logger, srv, "key")
+func (s *Server) RegisterHandlers(srv handler.Service, key string, privateKey *rsa.PrivateKey) {
+	getMetricHandler := handler.NewGetMetric(s.logger, srv, key)
+	getMetricsHandler := handler.NewGetMetrics(s.logger, srv, key)
+	getMetricV2Handler := handler.NewGetMetricV2(s.logger, srv, key)
 	postMetricHandler := handler.NewPostMetric(s.logger, srv)
 	postMetricV2Handler := handler.NewPostMetricV2(s.logger, srv)
-	postMetrics := handler.NewPostMetrics(s.logger, srv)
+	postMetrics := handler.NewPostMetrics(s.logger, srv, privateKey)
 	pingStorage := handler.NewPingStorage(s.logger, srv)
 
 	r := chi.NewRouter()
@@ -125,9 +127,15 @@ func Run() {
 		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	}
 
+	privateKey, err := crypto.LoadPrivateKey(cfg.CryptoKey)
+	if err != nil {
+		logger.Error().Err(err).Msg("Error to load private key")
+		return
+	}
+
 	svc := service.New(&logger, repo)
 	server := NewServer(&logger, cfg.ServerAddress)
-	server.RegisterHandlers(svc, cfg.Key)
+	server.RegisterHandlers(svc, cfg.Key, privateKey)
 
 	f := handler.NewFile1(svc)
 

@@ -26,7 +26,7 @@ func setupRouter() (*chi.Mux, *mock.Service) {
 	getMetricHandler := handler.NewGetMetric(&l, srv, key)
 	getMetricsHandler := handler.NewGetMetrics(&l, srv, key)
 	postMetricHandler := handler.NewPostMetric(&l, srv)
-	postMetricsHandler := handler.NewPostMetrics(&l, srv)
+	postMetricsHandler := handler.NewPostMetrics(&l, srv, nil)
 	getMetricV2Handler := handler.NewGetMetricV2(&l, srv, key)
 	postMetricV2Handler := handler.NewPostMetricV2(&l, srv)
 	pingStorageHandler := handler.NewPingStorage(&l, srv)
