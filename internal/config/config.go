@@ -16,6 +16,7 @@ type Config struct {
 	DatabaseDNS     string `env:"DATABASE_DSN"`
 	Key             string `env:"KEY"`
 	RateLimit       int    `env:"RATE_LIMIT"`
+	CryptoKey       string `env:"CRYPTO_KEY"`
 }
 
 func NewAgent() (Config, error) {
@@ -40,6 +41,9 @@ func NewAgent() (Config, error) {
 	}
 	if config.RateLimit == 0 {
 		config.RateLimit = flags.RateLimit
+	}
+	if config.CryptoKey == "" {
+		config.CryptoKey = flags.CryptoKey
 	}
 
 	return config, nil
@@ -74,6 +78,9 @@ func NewServer() (Config, error) {
 	if config.RateLimit == 0 {
 		config.RateLimit = flags.RateLimit
 	}
+	if config.CryptoKey == "" {
+		config.CryptoKey = flags.CryptoKey
+	}
 
 	if config.DatabaseDNS != "" {
 		config.FileStoragePath = ""
@@ -90,6 +97,7 @@ func parseAgentFlags() Config {
 	pollInterval := flag.Int("p", 2, "interval to gather metrics (in seconds)")
 	key := flag.String("k", "", "key")
 	rateLimit := flag.Int("l", 1, "rate limit")
+	cryptoKey := flag.String("crypto-key", "", "Path to the public key")
 	flag.Parse()
 
 	return Config{
@@ -98,6 +106,7 @@ func parseAgentFlags() Config {
 		PollInterval:   *pollInterval,
 		Key:            *key,
 		RateLimit:      *rateLimit,
+		CryptoKey:      *cryptoKey,
 	}
 }
 
@@ -108,6 +117,7 @@ func parseServerFlags() Config {
 	restore := flag.Bool("r", true, "restore")
 	storeInterval := flag.Int("i", 300, "interval")
 	key := flag.String("k", "", "")
+	cryptoKey := flag.String("crypto-key", "", "Path to the private key")
 	flag.Parse()
 
 	return Config{
@@ -117,5 +127,6 @@ func parseServerFlags() Config {
 		Restore:         restore,
 		StoreInterval:   storeInterval,
 		Key:             *key,
+		CryptoKey:       *cryptoKey,
 	}
 }

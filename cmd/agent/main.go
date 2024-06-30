@@ -13,6 +13,7 @@ import (
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/config"
+	"github.com/v-starostin/go-metrics/internal/crypto"
 )
 
 var (
@@ -38,7 +39,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	a := agent.New(&logger, client, cfg.ServerAddress, cfg.Key)
+	publicKey, err := crypto.LoadPublicKey(cfg.CryptoKey)
+	if err != nil {
+		logger.Error().Err(err).Msg("Error to load public key")
+		return
+	}
+
+	a := agent.New(&logger, client, cfg.ServerAddress, cfg.Key, publicKey)
 
 	logger.Info().
 		Int("pollInterval", cfg.PollInterval).
