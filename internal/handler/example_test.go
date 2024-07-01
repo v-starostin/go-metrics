@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,14 +23,15 @@ import (
 func setupRouter() (*chi.Mux, *mock.Service) {
 	l := zerolog.New(zerolog.ConsoleWriter{Out: bytes.NewBuffer(nil)})
 	srv := &mock.Service{}
+	ctx := context.Background()
 
-	getMetricHandler := handler.NewGetMetric(&l, srv, key)
-	getMetricsHandler := handler.NewGetMetrics(&l, srv, key)
-	postMetricHandler := handler.NewPostMetric(&l, srv)
-	postMetricsHandler := handler.NewPostMetrics(&l, srv, nil)
-	getMetricV2Handler := handler.NewGetMetricV2(&l, srv, key)
-	postMetricV2Handler := handler.NewPostMetricV2(&l, srv)
-	pingStorageHandler := handler.NewPingStorage(&l, srv)
+	getMetricHandler := handler.NewGetMetric(ctx, &l, srv, key)
+	getMetricsHandler := handler.NewGetMetrics(ctx, &l, srv, key)
+	postMetricHandler := handler.NewPostMetric(ctx, &l, srv)
+	postMetricsHandler := handler.NewPostMetrics(ctx, &l, srv, nil)
+	getMetricV2Handler := handler.NewGetMetricV2(ctx, &l, srv, key)
+	postMetricV2Handler := handler.NewPostMetricV2(ctx, &l, srv)
+	pingStorageHandler := handler.NewPingStorage(ctx, &l, srv)
 
 	r := chi.NewRouter()
 	r.Get("/", getMetricsHandler.ServeHTTP)

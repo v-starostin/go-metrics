@@ -36,7 +36,7 @@ func main() {
 	client := &http.Client{
 		Timeout: time.Minute,
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
 	publicKey, err := crypto.LoadPublicKey(cfg.CryptoKey)
@@ -64,7 +64,14 @@ func main() {
 	}
 
 	<-ctx.Done()
-	logger.Info().Msg("Finished collecting metrics")
+	if ctx.Err() != nil {
+		logger.Info().Msgf("Received shutdown signal, stopping work: %v", ctx.Err())
+	}
+
+	logger.Info().Msg("Waiting 5 seconds to complete pending operations...")
+	time.Sleep(5 * time.Second)
+
+	logger.Info().Msg("Finished collecting metrics and shutting down gracefully.")
 }
 
 func getValue(s string) string {
