@@ -127,10 +127,13 @@ func Run() {
 		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	}
 
-	privateKey, err := crypto.LoadPrivateKey(cfg.CryptoKey)
-	if err != nil {
-		logger.Error().Err(err).Msg("Error to load private key")
-		return
+	var privateKey *rsa.PrivateKey
+	if cfg.CryptoKey != "" {
+		privateKey, err = crypto.LoadPrivateKey(cfg.CryptoKey)
+		if err != nil {
+			logger.Error().Err(err).Msg("Error to load private key")
+			return
+		}
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)

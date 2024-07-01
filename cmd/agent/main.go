@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -39,10 +40,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	publicKey, err := crypto.LoadPublicKey(cfg.CryptoKey)
-	if err != nil {
-		logger.Error().Err(err).Msg("Error to load public key")
-		return
+	var publicKey *rsa.PublicKey
+	if cfg.CryptoKey != "" {
+		publicKey, err = crypto.LoadPublicKey(cfg.CryptoKey)
+		if err != nil {
+			logger.Error().Err(err).Msg("Error to load public key")
+			return
+		}
 	}
 
 	a := agent.New(&logger, client, cfg.ServerAddress, cfg.Key, publicKey)
