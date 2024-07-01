@@ -59,6 +59,7 @@ func NewServer() (Config, error) {
 		return Config{}, err
 	}
 	mergeConfigs(&config, &flags)
+	setDefaultValues(&config)
 
 	if config.DatabaseDNS != "" {
 		config.FileStoragePath = ""
