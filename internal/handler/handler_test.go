@@ -76,7 +76,7 @@ func (suite *handlerTestSuite) TestHandlerServiceOK() {
 	*f = 1.23
 
 	m := model.Metric{MType: "gauge", ID: "metric1", Value: f}
-	suite.service.On("SaveMetric", m).Once().Return(nil)
+	suite.service.On("SaveMetric", context.Background(), m).Once().Return(nil)
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
@@ -96,7 +96,7 @@ func (suite *handlerTestSuite) TestHandlerServiceBadRequest() {
 	f := new(float64)
 	*f = 1.23
 	m := model.Metric{MType: "gauge", ID: "metric1", Value: f}
-	suite.service.On("SaveMetric", m).Once().Return(service.ErrParseMetric)
+	suite.service.On("SaveMetric", context.Background(), m).Once().Return(service.ErrParseMetric)
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
@@ -117,7 +117,7 @@ func (suite *handlerTestSuite) TestHandlerServiceError() {
 	*f = 1.23
 	m := model.Metric{MType: "gauge", ID: "metric1", Value: f}
 
-	suite.service.On("SaveMetric", m).Once().Return(errors.New("err"))
+	suite.service.On("SaveMetric", context.Background(), m).Once().Return(errors.New("err"))
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
@@ -154,7 +154,7 @@ func (suite *handlerTestSuite) TestHandlerGetGaugeOK() {
 	*f = 1.23
 
 	m := &model.Metric{MType: "gauge", ID: "metric1", Value: f}
-	suite.service.On("GetMetric", m.MType, m.ID).Once().Return(m, nil)
+	suite.service.On("GetMetric", context.Background(), m.MType, m.ID).Once().Return(m, nil)
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -176,7 +176,7 @@ func (suite *handlerTestSuite) TestHandlerGetCounterOK() {
 	*i = 10
 
 	m := &model.Metric{MType: "counter", ID: "metric1", Delta: i}
-	suite.service.On("GetMetric", m.MType, m.ID).Once().Return(m, nil)
+	suite.service.On("GetMetric", context.Background(), m.MType, m.ID).Once().Return(m, nil)
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -194,7 +194,7 @@ func (suite *handlerTestSuite) TestHandlerGetMetricNotFound() {
 
 	rr := httptest.NewRecorder()
 
-	suite.service.On("GetMetric", "counter", "metric1").Once().Return(nil, errors.New("not found"))
+	suite.service.On("GetMetric", context.Background(), "counter", "metric1").Once().Return(nil, errors.New("not found"))
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
@@ -222,7 +222,7 @@ func (suite *handlerTestSuite) TestHandlerGetAllOK() {
 		"gauge":   {"metric1": m2, "metric2": m3},
 	})
 
-	suite.service.On("GetMetrics").Once().Return(d, nil)
+	suite.service.On("GetMetrics", context.Background()).Once().Return(d, nil)
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -240,7 +240,7 @@ func (suite *handlerTestSuite) TestHandlerGetAllInternalServerError() {
 
 	rr := httptest.NewRecorder()
 
-	suite.service.On("GetMetrics").Once().Return(nil, errors.New("internal server error"))
+	suite.service.On("GetMetrics", context.Background()).Once().Return(nil, errors.New("internal server error"))
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -263,7 +263,7 @@ func (suite *handlerTestSuite) TestHandlerGetMetricOK() {
 	*f = 1.25
 
 	m := &model.Metric{MType: "gauge", ID: "metric1", Value: f}
-	suite.service.On("GetMetric", m.MType, m.ID).Once().Return(m, nil)
+	suite.service.On("GetMetric", context.Background(), m.MType, m.ID).Once().Return(m, nil)
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -299,7 +299,7 @@ func (suite *handlerTestSuite) TestHandlerMetricNotFound() {
 
 	rr := httptest.NewRecorder()
 
-	suite.service.On("GetMetric", "gauge", "metric2").Once().Return(nil, errors.New("err"))
+	suite.service.On("GetMetric", context.Background(), "gauge", "metric2").Once().Return(nil, errors.New("err"))
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -322,7 +322,7 @@ func (suite *handlerTestSuite) TestHandlerPostMetricOK() {
 
 	rr := httptest.NewRecorder()
 
-	suite.service.On("SaveMetric", m).Once().Return(nil)
+	suite.service.On("SaveMetric", context.Background(), m).Once().Return(nil)
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -358,7 +358,7 @@ func (suite *handlerTestSuite) TestHandlerPostMetricInternalServerError() {
 
 	rr := httptest.NewRecorder()
 
-	suite.service.On("SaveMetric", mmock.Anything).Once().Return(errors.New("err"))
+	suite.service.On("SaveMetric", context.Background(), mmock.Anything).Once().Return(errors.New("err"))
 
 	suite.r.ServeHTTP(rr, req)
 	res := rr.Result()
