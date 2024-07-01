@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -26,11 +27,11 @@ var ErrParseMetric = errors.New("failed to parse metric: wrong type")
 
 // Repository defines methods for loading, storing, and managing metrics.
 type Repository interface {
-	Load(mtype, mname string) (*model.Metric, error)
-	LoadAll() (model.Data, error)
-	StoreMetric(m model.Metric) error
-	StoreMetrics(m []model.Metric) error
-	PingStorage() error
+	Load(ctx context.Context, mtype, mname string) (*model.Metric, error)
+	LoadAll(ctx context.Context) (model.Data, error)
+	StoreMetric(ctx context.Context, m model.Metric) error
+	StoreMetrics(ctx context.Context, m []model.Metric) error
+	PingStorage(ctx context.Context) error
 	RestoreFromFile() error
 	WriteToFile() error
 }
@@ -50,11 +51,11 @@ func New(l *zerolog.Logger, repo Repository) *Service {
 }
 
 // GetMetric retrieves a specific metric by its type and name.
-func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
+func (s *Service) GetMetric(ctx context.Context, mtype, mname string) (*model.Metric, error) {
 	var m *model.Metric
 	var err error
-	err = s.Retry(maxRetries, func() error {
-		m, err = s.repo.Load(mtype, mname)
+	err = s.Retry(ctx, maxRetries, func(ctx context.Context) error {
+		m, err = s.repo.Load(ctx, mtype, mname)
 		if err != nil {
 			return err
 		}
@@ -68,11 +69,11 @@ func (s *Service) GetMetric(mtype, mname string) (*model.Metric, error) {
 }
 
 // GetMetrics retrieves all metrics.
-func (s *Service) GetMetrics() (model.Data, error) {
+func (s *Service) GetMetrics(ctx context.Context) (model.Data, error) {
 	var m model.Data
 	var err error
-	err = s.Retry(maxRetries, func() error {
-		m, err = s.repo.LoadAll()
+	err = s.Retry(ctx, maxRetries, func(ctx context.Context) error {
+		m, err = s.repo.LoadAll(ctx)
 		if err != nil {
 			return err
 		}
@@ -85,14 +86,14 @@ func (s *Service) GetMetrics() (model.Data, error) {
 }
 
 // SaveMetric saves a single metric.
-func (s *Service) SaveMetric(m model.Metric) error {
+func (s *Service) SaveMetric(ctx context.Context, m model.Metric) error {
 	logger := s.logger.With().
 		Str("type", m.MType).
 		Str("name", m.ID).
 		Logger()
 
-	err := s.Retry(maxRetries, func() error {
-		if err := s.repo.StoreMetric(m); err != nil {
+	err := s.Retry(ctx, maxRetries, func(ctx context.Context) error {
+		if err := s.repo.StoreMetric(ctx, m); err != nil {
 			return err
 		}
 		return nil
@@ -105,9 +106,9 @@ func (s *Service) SaveMetric(m model.Metric) error {
 }
 
 // SaveMetrics saves multiple metrics.
-func (s *Service) SaveMetrics(m []model.Metric) error {
-	err := s.Retry(maxRetries, func() error {
-		if err := s.repo.StoreMetrics(m); err != nil {
+func (s *Service) SaveMetrics(ctx context.Context, m []model.Metric) error {
+	err := s.Retry(ctx, maxRetries, func(ctx context.Context) error {
+		if err := s.repo.StoreMetrics(ctx, m); err != nil {
 			return err
 		}
 		return nil
@@ -120,8 +121,8 @@ func (s *Service) SaveMetrics(m []model.Metric) error {
 }
 
 // PingStorage checks the connection to the storage.
-func (s *Service) PingStorage() error {
-	return s.repo.PingStorage()
+func (s *Service) PingStorage(ctx context.Context) error {
+	return s.repo.PingStorage(ctx)
 }
 
 // WriteToFile writes the current state to a file.
@@ -135,16 +136,16 @@ func (s *Service) RestoreFromFile() error {
 }
 
 // Retry attempts to execute the given function up to a specified number of retries.
-func (s *Service) Retry(maxRetries int, fn func() error, intervals ...time.Duration) error {
+func (s *Service) Retry(ctx context.Context, maxRetries int, fn func(context.Context) error, intervals ...time.Duration) error {
 	var err error
-	err = fn()
+	err = fn(ctx)
 	if err == nil {
 		return nil
 	}
 	for i := 0; i < maxRetries; i++ {
 		s.logger.Info().Msgf("Retrying... (Attempt %d)", i+1)
 		time.Sleep(intervals[i])
-		if err = fn(); err == nil {
+		if err = fn(ctx); err == nil {
 			return nil
 		}
 	}

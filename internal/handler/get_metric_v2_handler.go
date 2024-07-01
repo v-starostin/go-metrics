@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -11,14 +12,16 @@ import (
 
 // GetMetricV2 is a struct that handles HTTP requests for retrieving metrics.
 type GetMetricV2 struct {
+	ctx     context.Context
 	logger  *zerolog.Logger
 	service Service
 	key     string
 }
 
 // NewGetMetricV2 creates a new handler.
-func NewGetMetricV2(l *zerolog.Logger, s Service, k string) *GetMetricV2 {
+func NewGetMetricV2(ctx context.Context, l *zerolog.Logger, s Service, k string) *GetMetricV2 {
 	return &GetMetricV2{
+		ctx:     ctx,
 		logger:  l,
 		service: s,
 		key:     k,
@@ -37,7 +40,7 @@ func (h *GetMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logger.Info().Any("req", req).Msg("Decoded request body")
 
-	res, err := h.service.GetMetric(req.MType, req.ID)
+	res, err := h.service.GetMetric(h.ctx, req.MType, req.ID)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("GetMetric method error")
 		writeResponse(w, http.StatusNotFound, model.Error{Error: "Not found"})

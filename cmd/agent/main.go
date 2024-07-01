@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/config"
+	"github.com/v-starostin/go-metrics/internal/crypto"
 )
 
 var (
@@ -35,10 +37,19 @@ func main() {
 	client := &http.Client{
 		Timeout: time.Minute,
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	a := agent.New(&logger, client, cfg.ServerAddress, cfg.Key)
+	var publicKey *rsa.PublicKey
+	if cfg.CryptoKey != "" {
+		publicKey, err = crypto.LoadPublicKey(cfg.CryptoKey)
+		if err != nil {
+			logger.Error().Err(err).Msg("Error to load public key")
+			return
+		}
+	}
+
+	a := agent.New(&logger, client, cfg.ServerAddress, cfg.Key, publicKey)
 
 	logger.Info().
 		Int("pollInterval", cfg.PollInterval).
@@ -57,7 +68,14 @@ func main() {
 	}
 
 	<-ctx.Done()
-	logger.Info().Msg("Finished collecting metrics")
+	if ctx.Err() != nil {
+		logger.Info().Msgf("Received shutdown signal, stopping work: %v", ctx.Err())
+	}
+
+	logger.Info().Msg("Waiting 5 seconds to complete pending operations...")
+	time.Sleep(5 * time.Second)
+
+	logger.Info().Msg("Finished collecting metrics and shutting down gracefully.")
 }
 
 func getValue(s string) string {

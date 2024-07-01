@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/hmac"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/v-starostin/go-metrics/internal/crypto"
 
 	"github.com/v-starostin/go-metrics/internal/model"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -31,28 +33,30 @@ type HTTPClient interface {
 
 // Agent represents an agent that collects and sends metrics.
 type Agent struct {
-	mu      sync.Mutex
-	logger  *zerolog.Logger
-	client  HTTPClient
-	Metrics []model.AgentMetric
-	address string
-	key     string
-	counter *int64
-	gw      *gzip.Writer
+	mu        sync.Mutex
+	logger    *zerolog.Logger
+	client    HTTPClient
+	Metrics   []model.AgentMetric
+	address   string
+	key       string
+	counter   *int64
+	gw        *gzip.Writer
+	publicKey *rsa.PublicKey
 }
 
 // New creates a new Agent with the provided logger, HTTP client, address, and key.
-func New(logger *zerolog.Logger, client HTTPClient, address, key string) *Agent {
+func New(logger *zerolog.Logger, client HTTPClient, address, key string, publicKey *rsa.PublicKey) *Agent {
 	counter := new(int64)
 	*counter = 0
 	return &Agent{
-		logger:  logger,
-		client:  client,
-		address: address,
-		key:     key,
-		counter: counter,
-		gw:      gzip.NewWriter(io.Discard),
-		Metrics: make([]model.AgentMetric, len(model.GaugeMetrics)+5),
+		logger:    logger,
+		client:    client,
+		address:   address,
+		key:       key,
+		counter:   counter,
+		gw:        gzip.NewWriter(io.Discard),
+		Metrics:   make([]model.AgentMetric, len(model.GaugeMetrics)+5),
+		publicKey: publicKey,
 	}
 }
 
@@ -90,11 +94,26 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 				Int("len of buf", len(buf.Bytes())).
 				Send()
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/updates/", a.address), buf)
-			if err != nil {
-				a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
-				return err
+			var req *http.Request
+			if a.publicKey != nil {
+				encrypted, err := crypto.RSAEncrypt(a.publicKey, buf.Bytes())
+				if err != nil {
+					a.logger.Error().Err(err).Msg("Error to encrypt data")
+					return err
+				}
+				req, err = http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/updates/", a.address), bytes.NewReader(encrypted))
+				if err != nil {
+					a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
+					return err
+				}
+			} else {
+				req, err = http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/updates/", a.address), buf)
+				if err != nil {
+					a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
+					return err
+				}
 			}
+
 			if a.key != "" {
 				buf2 := *buf
 				h := hmac.New(sha256.New, []byte(a.key))

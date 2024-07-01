@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"html/template"
 	"net/http"
 
@@ -12,14 +13,16 @@ import (
 
 // GetMetrics is a struct that handles HTTP requests for retrieving metrics.
 type GetMetrics struct {
+	ctx     context.Context
 	logger  *zerolog.Logger
 	service Service
 	key     string
 }
 
 // NewGetMetrics creates a new handler.
-func NewGetMetrics(l *zerolog.Logger, srv Service, k string) *GetMetrics {
+func NewGetMetrics(ctx context.Context, l *zerolog.Logger, srv Service, k string) *GetMetrics {
 	return &GetMetrics{
+		ctx:     ctx,
 		logger:  l,
 		service: srv,
 		key:     k,
@@ -28,7 +31,7 @@ func NewGetMetrics(l *zerolog.Logger, srv Service, k string) *GetMetrics {
 
 // ServeHTTP handles HTTP requests for retrieving a specific metric.
 func (h *GetMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	metrics, err := h.service.GetMetrics()
+	metrics, err := h.service.GetMetrics(h.ctx)
 	if err != nil {
 		writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 		return

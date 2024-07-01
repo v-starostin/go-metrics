@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -77,14 +78,14 @@ func (s *MemStorage) WriteToFile() error {
 }
 
 // LoadAll retrieves all metrics from the in-memory storage.
-func (s *MemStorage) LoadAll() (model.Data, error) {
+func (s *MemStorage) LoadAll(_ context.Context) (model.Data, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.data, nil
 }
 
 // Load retrieves a specific metric by its type and name.
-func (s *MemStorage) Load(mtype, mname string) (*model.Metric, error) {
+func (s *MemStorage) Load(_ context.Context, mtype, mname string) (*model.Metric, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -102,7 +103,7 @@ func (s *MemStorage) Load(mtype, mname string) (*model.Metric, error) {
 }
 
 // StoreMetric saves a single metric
-func (s *MemStorage) StoreMetric(m model.Metric) error {
+func (s *MemStorage) StoreMetric(_ context.Context, m model.Metric) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -140,10 +141,10 @@ func (s *MemStorage) StoreMetric(m model.Metric) error {
 }
 
 // StoreMetrics saves multiple metrics.
-func (s *MemStorage) StoreMetrics(metrics []model.Metric) error {
+func (s *MemStorage) StoreMetrics(ctx context.Context, metrics []model.Metric) error {
 	var err error
 	for _, metric := range metrics {
-		err = s.StoreMetric(metric)
+		err = s.StoreMetric(ctx, metric)
 		if err != nil {
 			return err
 		}
@@ -151,6 +152,6 @@ func (s *MemStorage) StoreMetrics(metrics []model.Metric) error {
 	return nil
 }
 
-func (s *MemStorage) PingStorage() error {
+func (s *MemStorage) PingStorage(_ context.Context) error {
 	return nil
 }
