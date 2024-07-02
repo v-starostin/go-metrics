@@ -114,6 +114,7 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 				}
 			}
 
+			//
 			if a.key != "" {
 				buf2 := *buf
 				h := hmac.New(sha256.New, []byte(a.key))
