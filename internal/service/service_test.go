@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -57,7 +58,7 @@ func (suite *serviceTestSuite) TestMetric() {
 		suite.Run(test.name, func() {
 			mockCall := suite.repo.On("Load", test.metric.MType, test.metric.ID).Return(test.metric, test.err)
 
-			got, err := suite.service.GetMetric(test.metric.MType, test.metric.ID)
+			got, err := suite.service.GetMetric(context.Background(), test.metric.MType, test.metric.ID)
 			if err != nil {
 				suite.EqualError(err, test.expectedErr)
 			} else {
@@ -101,7 +102,7 @@ func (suite *serviceTestSuite) TestMetrics() {
 		suite.Run(test.name, func() {
 			mockCall := suite.repo.On("LoadAll").Return(test.expected, test.err)
 
-			got, err := suite.service.GetMetrics()
+			got, err := suite.service.GetMetrics(context.Background())
 			if err != nil {
 				suite.EqualError(err, test.expectedErr)
 			} else {
@@ -163,7 +164,7 @@ func (suite *serviceTestSuite) TestServiceSave() {
 		suite.Run(test.name, func() {
 			mockCall := suite.repo.On("StoreMetric", test.m).Return(test.err)
 
-			err := suite.service.SaveMetric(test.m)
+			err := suite.service.SaveMetric(context.Background(), test.m)
 			if test.expected != "" {
 				suite.EqualError(err, test.expected)
 			} else {
@@ -233,7 +234,7 @@ func (suite *serviceTestSuite) TestServiceSave2() {
 		suite.Run(test.name, func() {
 			mockCall := suite.repo.On("StoreMetrics", test.m).Return(test.err)
 
-			err := suite.service.SaveMetrics(test.m)
+			err := suite.service.SaveMetrics(context.Background(), test.m)
 			if test.expected != "" {
 				suite.EqualError(err, test.expected)
 			} else {

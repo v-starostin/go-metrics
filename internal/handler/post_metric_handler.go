@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,13 +16,15 @@ import (
 
 // PostMetric is a struct that handles HTTP request for posting the metrics.
 type PostMetric struct {
+	ctx     context.Context
 	logger  *zerolog.Logger
 	service Service
 }
 
 // NewPostMetric creates a new handler.
-func NewPostMetric(l *zerolog.Logger, srv Service) *PostMetric {
+func NewPostMetric(ctx context.Context, l *zerolog.Logger, srv Service) *PostMetric {
 	return &PostMetric{
+		ctx:     ctx,
 		logger:  l,
 		service: srv,
 	}
@@ -65,7 +68,7 @@ func (h *PostMetric) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.service.SaveMetric(m); err != nil {
+	if err := h.service.SaveMetric(h.ctx, m); err != nil {
 		if errors.Is(err, service.ErrParseMetric) {
 			writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
 			return

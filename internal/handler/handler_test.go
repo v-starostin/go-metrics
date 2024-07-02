@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -40,14 +41,15 @@ type handlerTestSuite struct {
 }
 
 func (suite *handlerTestSuite) SetupTest() {
+	ctx := context.Background()
 	l := zerolog.Logger{}
 	srv := &mock.Service{}
 
-	getMetricHandler := handler.NewGetMetric(&l, srv, key)
-	getMetricsHandler := handler.NewGetMetrics(&l, srv, key)
-	postMetricHandler := handler.NewPostMetric(&l, srv)
-	getMetricV2Handler := handler.NewGetMetricV2(&l, srv, key)
-	postMetricV2Handler := handler.NewPostMetricV2(&l, srv)
+	getMetricHandler := handler.NewGetMetric(ctx, &l, srv, key)
+	getMetricsHandler := handler.NewGetMetrics(ctx, &l, srv, key)
+	postMetricHandler := handler.NewPostMetric(ctx, &l, srv)
+	getMetricV2Handler := handler.NewGetMetricV2(ctx, &l, srv, key)
+	postMetricV2Handler := handler.NewPostMetricV2(ctx, &l, srv)
 
 	r := chi.NewRouter()
 	r.Get("/", getMetricsHandler.ServeHTTP)
