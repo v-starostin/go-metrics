@@ -39,9 +39,8 @@ func (h *PostMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
 	}
 
-	var data []byte
 	if h.privateKey != nil {
-		data, err = crypto.RSADecrypt(h.privateKey, b)
+		b, err = crypto.RSADecrypt(h.privateKey, b)
 		if err != nil {
 			h.logger.Error().Err(err).Msg("Invalid incoming data")
 			writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
@@ -49,7 +48,7 @@ func (h *PostMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req []model.Metric
-	if err := json.Unmarshal(data, &req); err != nil {
+	if err := json.Unmarshal(b, &req); err != nil {
 		h.logger.Error().Err(err).Msg("Invalid incoming data")
 		writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad request"})
 		return
