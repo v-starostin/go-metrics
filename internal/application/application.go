@@ -126,7 +126,6 @@ func Run() {
 	} else {
 		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	}
-
 	var privateKey *rsa.PrivateKey
 	if cfg.CryptoKey != "" {
 		privateKey, err = crypto.LoadPrivateKey(cfg.CryptoKey)
