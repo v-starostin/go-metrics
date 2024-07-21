@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"net"
 	"net/http"
 	"slices"
 	"time"
@@ -100,6 +101,33 @@ func CheckHash(key string) func(next http.Handler) http.Handler {
 				return
 			}
 			r.Body = io.NopCloser(bytes.NewReader(b))
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func CheckIP(l *zerolog.Logger, subnet string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if subnet == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			realIP := r.Header.Get("X-Real-IP")
+			ip := net.ParseIP(realIP)
+			if ip == nil {
+				l.Error().Msgf("X-Real-IP is empty")
+				writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad Request"})
+				return
+			}
+			_, ipNet, err := net.ParseCIDR(subnet)
+			if err != nil {
+				l.Error().Err(err).Msg("ParseCIDR error")
+				writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal Server Error"})
+			}
+			if !ipNet.Contains(ip) {
+				writeResponse(w, http.StatusForbidden, model.Error{Error: "Forbidden"})
+			}
 			next.ServeHTTP(w, r)
 		})
 	}
