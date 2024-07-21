@@ -64,7 +64,7 @@ func (s *Server) RegisterHandlers(
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Use(middleware.RequestLogger(&handler.LogFormatter{Logger: s.logger}))
-		r.Use(handler.CheckIP(s.logger, trustedSubnet))
+		r.Use(handler.CheckIP(trustedSubnet))
 		r.Use(handler.CheckHash(key))
 		r.Use(middleware.Compress(5, "text/html", "application/json"))
 		r.Use(handler.Decompress(s.logger))

@@ -106,7 +106,7 @@ func CheckHash(key string) func(next http.Handler) http.Handler {
 	}
 }
 
-func CheckIP(l *zerolog.Logger, subnet string) func(next http.Handler) http.Handler {
+func CheckIP(subnet string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if subnet == "" {
@@ -116,14 +116,12 @@ func CheckIP(l *zerolog.Logger, subnet string) func(next http.Handler) http.Hand
 			realIP := r.Header.Get("X-Real-IP")
 			ip := net.ParseIP(realIP)
 			if ip == nil {
-				l.Error().Msgf("X-Real-IP is empty")
-				writeResponse(w, http.StatusBadRequest, model.Error{Error: "Bad Request"})
+				writeResponse(w, http.StatusBadRequest, model.Error{Error: "X-Real-IP is empty"})
 				return
 			}
 			_, ipNet, err := net.ParseCIDR(subnet)
 			if err != nil {
-				l.Error().Err(err).Msg("ParseCIDR error")
-				writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal Server Error"})
+				writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Wrong subnet format"})
 			}
 			if !ipNet.Contains(ip) {
 				writeResponse(w, http.StatusForbidden, model.Error{Error: "Forbidden"})
