@@ -46,13 +46,14 @@ func setupRouter() (*chi.Mux, *mock.Service) {
 }
 
 func ExamplePostMetric_ServeHTTP_ok() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	req, _ := http.NewRequest(http.MethodPost, address+updatePathCounter, nil)
 	rr := httptest.NewRecorder()
 
 	f := int64(1)
 	m := model.Metric{MType: "counter", ID: "metric1", Delta: &f}
-	srv.On("SaveMetric", m).Once().Return(nil)
+	srv.On("SaveMetric", ctx, m).Once().Return(nil)
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -67,13 +68,14 @@ func ExamplePostMetric_ServeHTTP_ok() {
 }
 
 func ExamplePostMetric_ServeHTTP_badRequest() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	req, _ := http.NewRequest(http.MethodPost, address+updatePathGauge, nil)
 	rr := httptest.NewRecorder()
 
 	f := 1.23
 	m := model.Metric{MType: "gauge", ID: "metric1", Value: &f}
-	srv.On("SaveMetric", m).Return(service.ErrParseMetric).Once()
+	srv.On("SaveMetric", ctx, m).Return(service.ErrParseMetric).Once()
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -88,13 +90,14 @@ func ExamplePostMetric_ServeHTTP_badRequest() {
 }
 
 func ExamplePostMetric_ServeHTTP_error() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	req, _ := http.NewRequest(http.MethodPost, address+updatePathGauge, nil)
 	rr := httptest.NewRecorder()
 
 	f := 1.23
 	m := model.Metric{MType: "gauge", ID: "metric1", Value: &f}
-	srv.On("SaveMetric", m).Return(errors.New("err")).Once()
+	srv.On("SaveMetric", ctx, m).Return(errors.New("err")).Once()
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -126,6 +129,7 @@ func ExamplePostMetric_ServeHTTP_wrongMetricType() {
 }
 
 func ExamplePostMetrics_ServeHTTP_ok() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 
 	f1, f2 := new(float64), new(float64)
@@ -137,7 +141,7 @@ func ExamplePostMetrics_ServeHTTP_ok() {
 	b, _ := json.Marshal(m)
 	req, _ := http.NewRequest(http.MethodPost, address+postMetrics, bytes.NewReader(b))
 	rr := httptest.NewRecorder()
-	srv.On("SaveMetrics", m).Once().Return(nil)
+	srv.On("SaveMetrics", ctx, m).Once().Return(nil)
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -152,6 +156,7 @@ func ExamplePostMetrics_ServeHTTP_ok() {
 }
 
 func ExamplePostMetrics_ServeHTTP_serviceError() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 
 	f1, f2 := new(float64), new(float64)
@@ -163,7 +168,7 @@ func ExamplePostMetrics_ServeHTTP_serviceError() {
 	b, _ := json.Marshal(m)
 	req, _ := http.NewRequest(http.MethodPost, address+postMetrics, bytes.NewReader(b))
 	rr := httptest.NewRecorder()
-	srv.On("SaveMetrics", m).Once().Return(errors.New("service error"))
+	srv.On("SaveMetrics", ctx, m).Once().Return(errors.New("service error"))
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -202,8 +207,9 @@ func ExamplePostMetrics_ServeHTTP_wrongRequest() {
 }
 
 func ExamplePingStorage_ServeHTTP_ok() {
+	ctx := context.Background()
 	r, srv := setupRouter()
-	srv.On("PingStorage").Once().Return(nil)
+	srv.On("PingStorage", ctx).Once().Return(nil)
 	req, _ := http.NewRequest(http.MethodGet, pingStorage, nil)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
@@ -216,8 +222,9 @@ func ExamplePingStorage_ServeHTTP_ok() {
 }
 
 func ExamplePingStorage_ServeHTTP_serviceError() {
+	ctx := context.Background()
 	r, srv := setupRouter()
-	srv.On("PingStorage").Once().Return(errors.New("PingStorage error"))
+	srv.On("PingStorage", ctx).Once().Return(errors.New("PingStorage error"))
 	req, _ := http.NewRequest(http.MethodGet, pingStorage, nil)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
@@ -230,6 +237,7 @@ func ExamplePingStorage_ServeHTTP_serviceError() {
 }
 
 func ExampleGetMetric_ServeHTTP_getGaugeMetric_ok() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	req, _ := http.NewRequest(http.MethodGet, address+getGaugePath, nil)
 	rr := httptest.NewRecorder()
@@ -237,7 +245,7 @@ func ExampleGetMetric_ServeHTTP_getGaugeMetric_ok() {
 	f := new(float64)
 	*f = 1.23
 	m := &model.Metric{MType: "gauge", ID: "metric1", Value: f}
-	srv.On("GetMetric", m.MType, m.ID).Once().Return(m, nil)
+	srv.On("GetMetric", ctx, m.MType, m.ID).Once().Return(m, nil)
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -252,6 +260,7 @@ func ExampleGetMetric_ServeHTTP_getGaugeMetric_ok() {
 }
 
 func ExampleGetMetric_ServeHTTP_getCounterMetric_ok() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	req, _ := http.NewRequest(http.MethodGet, address+getCounterPath, nil)
 	rr := httptest.NewRecorder()
@@ -259,7 +268,7 @@ func ExampleGetMetric_ServeHTTP_getCounterMetric_ok() {
 	f := new(int64)
 	*f = 1
 	m := &model.Metric{MType: "counter", ID: "metric1", Delta: f}
-	srv.On("GetMetric", m.MType, m.ID).Once().Return(m, nil)
+	srv.On("GetMetric", ctx, m.MType, m.ID).Once().Return(m, nil)
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -274,6 +283,7 @@ func ExampleGetMetric_ServeHTTP_getCounterMetric_ok() {
 }
 
 func ExampleGetMetric_ServeHTTP_notFound() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	req, _ := http.NewRequest(http.MethodGet, address+getGaugePath, nil)
 	rr := httptest.NewRecorder()
@@ -281,7 +291,7 @@ func ExampleGetMetric_ServeHTTP_notFound() {
 	f := new(float64)
 	*f = 1.23
 	m := &model.Metric{MType: "gauge", ID: "metric1"}
-	srv.On("GetMetric", m.MType, m.ID).Once().Return(nil, errors.New("err"))
+	srv.On("GetMetric", ctx, m.MType, m.ID).Once().Return(nil, errors.New("err"))
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -296,6 +306,7 @@ func ExampleGetMetric_ServeHTTP_notFound() {
 }
 
 func ExampleGetMetrics_ServeHTTP_ok() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	req, _ := http.NewRequest(http.MethodGet, address+getAllPath, nil)
 	rr := httptest.NewRecorder()
@@ -310,7 +321,7 @@ func ExampleGetMetrics_ServeHTTP_ok() {
 		"counter": {"metric1": m1},
 		"gauge":   {"metric1": m2, "metric2": m3},
 	})
-	srv.On("GetMetrics").Once().Return(d, nil)
+	srv.On("GetMetrics", ctx).Once().Return(d, nil)
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -322,10 +333,11 @@ func ExampleGetMetrics_ServeHTTP_ok() {
 }
 
 func ExampleGetMetrics_ServeHTTP_internalServerError() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	req, _ := http.NewRequest(http.MethodGet, address+getAllPath, nil)
 	rr := httptest.NewRecorder()
-	srv.On("GetMetrics").Once().Return(nil, errors.New("internal server error"))
+	srv.On("GetMetrics", ctx).Once().Return(nil, errors.New("internal server error"))
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -340,6 +352,7 @@ func ExampleGetMetrics_ServeHTTP_internalServerError() {
 }
 
 func ExampleGetMetricV2_ServeHTTP_ok() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	b := []byte(`{"id": "metric1", "type":"gauge"}`)
 	req, _ := http.NewRequest(http.MethodPost, address+"/value/", bytes.NewReader(b))
@@ -349,7 +362,7 @@ func ExampleGetMetricV2_ServeHTTP_ok() {
 	*f = 1.25
 
 	m := &model.Metric{MType: "gauge", ID: "metric1", Value: f}
-	srv.On("GetMetric", m.MType, m.ID).Once().Return(m, nil)
+	srv.On("GetMetric", ctx, m.MType, m.ID).Once().Return(m, nil)
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -382,11 +395,12 @@ func ExampleGetMetricV2_ServeHTTP_invalidData() {
 }
 
 func ExampleGetMetricV2_ServeHTTP_notFound() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	b := []byte(`{"id": "metric2", "type":"gauge"}`)
 	req, _ := http.NewRequest(http.MethodPost, address+"/value/", bytes.NewReader(b))
 	rr := httptest.NewRecorder()
-	srv.On("GetMetric", "gauge", "metric2").Once().Return(nil, errors.New("err"))
+	srv.On("GetMetric", ctx, "gauge", "metric2").Once().Return(nil, errors.New("err"))
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
@@ -400,6 +414,7 @@ func ExampleGetMetricV2_ServeHTTP_notFound() {
 }
 
 func ExamplePostMetricV2_ServeHTTP_ok() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	f := new(float64)
 	*f = 1.25
@@ -407,7 +422,7 @@ func ExamplePostMetricV2_ServeHTTP_ok() {
 	b, _ := json.Marshal(m)
 	req, _ := http.NewRequest(http.MethodPost, address+"/update/", bytes.NewReader(b))
 	rr := httptest.NewRecorder()
-	srv.On("SaveMetric", m).Once().Return(nil)
+	srv.On("SaveMetric", ctx, m).Once().Return(nil)
 
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
@@ -440,11 +455,12 @@ func ExamplePostMetricV2_ServeHTTP_invalidData() {
 }
 
 func ExamplePostMetricV2_ServeHTTP_internalServerError() {
+	ctx := context.Background()
 	r, srv := setupRouter()
 	b := []byte(`{"id": "metric1", "type": "gauge", "value": 1.25}`)
 	req, _ := http.NewRequest(http.MethodPost, address+"/update/", bytes.NewReader(b))
 	rr := httptest.NewRecorder()
-	srv.On("SaveMetric", mmock.Anything).Once().Return(errors.New("err"))
+	srv.On("SaveMetric", ctx, mmock.Anything).Once().Return(errors.New("err"))
 	r.ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
