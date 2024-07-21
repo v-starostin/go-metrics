@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"crypto/rsa"
+	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -60,10 +62,15 @@ func main() {
 	go a.CollectGopsutilMetrics(ctx, time.Duration(cfg.PollInterval)*time.Second)
 
 	metrics := a.PrepareMetrics(ctx, time.Duration(cfg.ReportInterval)*time.Second)
+	ip, err := getIP()
+	if err != nil {
+		logger.Error().Err(err).Msg("Error to get IP")
+		return
+	}
 
 	for i := 0; i < cfg.RateLimit; i++ {
 		go a.Retry(ctx, 3, func(ctx context.Context) error {
-			return a.SendMetrics(ctx, metrics)
+			return a.SendMetrics(ctx, metrics, ip)
 		}, 1*time.Second, 3*time.Second, 5*time.Second)
 	}
 
@@ -83,4 +90,19 @@ func getValue(s string) string {
 		return "N/A"
 	}
 	return s
+}
+
+func getIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, addr := range addrs {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			return ipNet.IP.String(), nil
+		}
+	}
+
+	return "", fmt.Errorf("no IP address found")
 }

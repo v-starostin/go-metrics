@@ -46,7 +46,13 @@ func NewServer(l *zerolog.Logger, addr string) *Server {
 	}
 }
 
-func (s *Server) RegisterHandlers(ctx context.Context, srv handler.Service, key string, privateKey *rsa.PrivateKey) {
+func (s *Server) RegisterHandlers(
+	ctx context.Context,
+	srv handler.Service,
+	key,
+	trustedSubnet string,
+	privateKey *rsa.PrivateKey,
+) {
 	getMetricHandler := handler.NewGetMetric(ctx, s.logger, srv, key)
 	getMetricsHandler := handler.NewGetMetrics(ctx, s.logger, srv, key)
 	getMetricV2Handler := handler.NewGetMetricV2(ctx, s.logger, srv, key)
@@ -58,6 +64,7 @@ func (s *Server) RegisterHandlers(ctx context.Context, srv handler.Service, key 
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Use(middleware.RequestLogger(&handler.LogFormatter{Logger: s.logger}))
+		r.Use(handler.CheckIP(trustedSubnet))
 		r.Use(handler.CheckHash(key))
 		r.Use(middleware.Compress(5, "text/html", "application/json"))
 		r.Use(handler.Decompress(s.logger))
@@ -140,7 +147,7 @@ func Run() {
 
 	svc := service.New(&logger, repo)
 	server := NewServer(&logger, cfg.ServerAddress)
-	server.RegisterHandlers(ctx, svc, cfg.Key, privateKey)
+	server.RegisterHandlers(ctx, svc, cfg.Key, cfg.TrustedSubnet, privateKey)
 
 	f := handler.NewFile1(svc)
 
