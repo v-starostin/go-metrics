@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -11,13 +12,15 @@ import (
 
 // PostMetricV2 is a struct that handles HTTP request for posting the metrics.
 type PostMetricV2 struct {
+	ctx     context.Context
 	logger  *zerolog.Logger
 	service Service
 }
 
 // NewPostMetricV2 creates a new handler.
-func NewPostMetricV2(l *zerolog.Logger, srv Service) *PostMetricV2 {
+func NewPostMetricV2(ctx context.Context, l *zerolog.Logger, srv Service) *PostMetricV2 {
 	return &PostMetricV2{
+		ctx:     ctx,
 		logger:  l,
 		service: srv,
 	}
@@ -35,7 +38,7 @@ func (h *PostMetricV2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logger.Info().Any("req", req).Msg("Decoded request body")
 
-	if err := h.service.SaveMetric(req); err != nil {
+	if err := h.service.SaveMetric(h.ctx, req); err != nil {
 		h.logger.Error().Err(err).Msg("SaveMetric method error")
 		writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
 		return

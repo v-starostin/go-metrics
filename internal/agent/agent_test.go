@@ -19,7 +19,7 @@ import (
 
 func BenchmarkCollectRuntimeMetrics(b *testing.B) {
 	client := &mock.HTTPClient{}
-	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -33,7 +33,7 @@ func BenchmarkCollectRuntimeMetrics(b *testing.B) {
 
 func BenchmarkCollectGopsutilMetrics(b *testing.B) {
 	client := &mock.HTTPClient{}
-	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -66,7 +66,7 @@ func BenchmarkSendMetrics(b *testing.B) {
 		mm = append(mm, metrics)
 	}
 
-	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key")
+	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	res := &http.Response{
 		StatusCode: http.StatusOK,

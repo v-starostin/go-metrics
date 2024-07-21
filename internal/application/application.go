@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"crypto/rsa"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/v-starostin/go-metrics/internal/config"
+	"github.com/v-starostin/go-metrics/internal/crypto"
 	"github.com/v-starostin/go-metrics/internal/handler"
 	"github.com/v-starostin/go-metrics/internal/repository"
 	"github.com/v-starostin/go-metrics/internal/service"
@@ -44,14 +46,14 @@ func NewServer(l *zerolog.Logger, addr string) *Server {
 	}
 }
 
-func (s *Server) RegisterHandlers(srv handler.Service, key string) {
-	getMetricHandler := handler.NewGetMetric(s.logger, srv, "key")
-	getMetricsHandler := handler.NewGetMetrics(s.logger, srv, "key")
-	getMetricV2Handler := handler.NewGetMetricV2(s.logger, srv, "key")
-	postMetricHandler := handler.NewPostMetric(s.logger, srv)
-	postMetricV2Handler := handler.NewPostMetricV2(s.logger, srv)
-	postMetrics := handler.NewPostMetrics(s.logger, srv)
-	pingStorage := handler.NewPingStorage(s.logger, srv)
+func (s *Server) RegisterHandlers(ctx context.Context, srv handler.Service, key string, privateKey *rsa.PrivateKey) {
+	getMetricHandler := handler.NewGetMetric(ctx, s.logger, srv, key)
+	getMetricsHandler := handler.NewGetMetrics(ctx, s.logger, srv, key)
+	getMetricV2Handler := handler.NewGetMetricV2(ctx, s.logger, srv, key)
+	postMetricHandler := handler.NewPostMetric(ctx, s.logger, srv)
+	postMetricV2Handler := handler.NewPostMetricV2(ctx, s.logger, srv)
+	postMetrics := handler.NewPostMetrics(ctx, s.logger, srv, privateKey)
+	pingStorage := handler.NewPingStorage(ctx, s.logger, srv)
 
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
@@ -124,10 +126,21 @@ func Run() {
 	} else {
 		repo = repository.NewMemStorage(&logger, *cfg.StoreInterval, cfg.FileStoragePath)
 	}
+	var privateKey *rsa.PrivateKey
+	if cfg.CryptoKey != "" {
+		privateKey, err = crypto.LoadPrivateKey(cfg.CryptoKey)
+		if err != nil {
+			logger.Error().Err(err).Msg("Error to load private key")
+			return
+		}
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
 
 	svc := service.New(&logger, repo)
 	server := NewServer(&logger, cfg.ServerAddress)
-	server.RegisterHandlers(svc, cfg.Key)
+	server.RegisterHandlers(ctx, svc, cfg.Key, privateKey)
 
 	f := handler.NewFile1(svc)
 
@@ -137,9 +150,6 @@ func Run() {
 		}
 		logger.Info().Msg("Storage has been restored from file")
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
-	defer stop()
 
 	if *cfg.StoreInterval > 0 {
 		ticker := time.NewTicker(time.Duration(*cfg.StoreInterval) * time.Second)
@@ -189,11 +199,10 @@ func (s *Server) HandleShutdown(ctx context.Context, wg *sync.WaitGroup, f *hand
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := s.srv.Shutdown(ctx)
-	if err != nil {
+	if err := s.srv.Shutdown(ctx); err != nil {
 		s.logger.Error().Err(err).Msg("Shutdown server error")
 		return
 	}
