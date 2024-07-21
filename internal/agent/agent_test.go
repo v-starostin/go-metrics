@@ -93,6 +93,6 @@ func BenchmarkSendMetrics(b *testing.B) {
 		}()
 
 		b.StartTimer()
-		a.SendMetrics(ctx, ch)
+		a.SendMetrics(ctx, ch, "192.168.8.22")
 	}
 }

@@ -63,7 +63,7 @@ func New(logger *zerolog.Logger, client HTTPClient, address, key string, publicK
 // SendMetrics sends the collected metrics to the configured address.
 // It reads metrics from the provided channel and sends them in a compressed JSON format.
 // If an error occurs during the process, it is logged and returned.
-func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMetric) error {
+func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMetric, ip string) error {
 	for {
 		var m model.AgentMetrics
 		var ok bool
@@ -126,6 +126,7 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 			}
 			req.Header.Add("Content-Type", "application/json")
 			req.Header.Add("Content-Encoding", "gzip")
+			req.Header.Add("X-Real-IP", ip)
 
 			res, err := a.client.Do(req)
 			if err != nil {
