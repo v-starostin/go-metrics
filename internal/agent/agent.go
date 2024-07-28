@@ -66,63 +66,6 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 		if !ok {
 			return nil
 		} else {
-			//b, err := json.Marshal(m)
-			//b, err := m.MarshalJSON()
-			//if err != nil {
-			//	a.logger.Error().Err(err).Msg("Marshalling error")
-			//	return err
-			//}
-			//a.logger.Info().Any("json", string(b)).Msg("Marshalled")
-
-			//buf := &bytes.Buffer{}
-			//a.gw.Reset(buf)
-			//n, err := a.gw.Write(b)
-			//if err != nil {
-			//	a.logger.Error().Err(err).Msg("gw.Write error")
-			//	return err
-			//}
-			//a.gw.Close()
-			//
-			//a.logger.Info().
-			//	Int("len of b", len(b)).
-			//	Int("written bytes", n).
-			//	Int("len of buf", len(buf.Bytes())).
-			//	Send()
-
-			//var req *http.Request
-			if a.publicKey != nil {
-				//encrypted, err := crypto.RSAEncrypt(a.publicKey, buf.Bytes())
-				//if err != nil {
-				//	a.logger.Error().Err(err).Msg("Error to encrypt data")
-				//	return err
-				//}
-				//req, err = http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/updates/", a.address), bytes.NewReader(encrypted))
-				//if err != nil {
-				//	a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
-				//	return err
-				//}
-			} else {
-				//req, err = http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("http://%s/updates/", a.address), buf)
-				//if err != nil {
-				//	a.logger.Error().Err(err).Msg("http.NewRequestWithContext method error")
-				//	return err
-				//}
-			}
-
-			//if a.key != "" {
-			//	buf2 := *buf
-			//	h := hmac.New(sha256.New, []byte(a.key))
-			//	if _, err = h.Write(buf2.Bytes()); err != nil {
-			//		return err
-			//	}
-			//	d := h.Sum(nil)
-			//	a.logger.Info().Msgf("hash: %x", d)
-			//	req.Header.Add("HashSHA256", hex.EncodeToString(d))
-			//}
-			//req.Header.Add("Content-Type", "application/json")
-			//req.Header.Add("Content-Encoding", "gzip")
-			//req.Header.Add("X-Real-IP", ip)
-
 			metrics := make([]*pb.Metric, len(m))
 			for i, metric := range m {
 				metrics[i] = &pb.Metric{

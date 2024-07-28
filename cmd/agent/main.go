@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"log"
 	"net"
 	_ "net/http/pprof"
 	"os"
@@ -41,13 +40,11 @@ func main() {
 	}
 	conn, err := grpc.NewClient("localhost:8081", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		logger.Error().Err(err).Msg("Did not connect")
 	}
 	defer conn.Close()
 	client := pb.NewGoMetricsClient(conn)
-	//client := &http.Client{
-	//	Timeout: time.Minute,
-	//}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
