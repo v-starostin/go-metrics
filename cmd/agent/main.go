@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"log"
 	"net"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -13,10 +13,13 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/config"
 	"github.com/v-starostin/go-metrics/internal/crypto"
+	"github.com/v-starostin/go-metrics/internal/pb"
 )
 
 var (
@@ -36,9 +39,15 @@ func main() {
 		logger.Error().Err(err).Msg("Configuration error")
 		return
 	}
-	client := &http.Client{
-		Timeout: time.Minute,
+	conn, err := grpc.NewClient("localhost:8081", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
 	}
+	defer conn.Close()
+	client := pb.NewGoMetricsClient(conn)
+	//client := &http.Client{
+	//	Timeout: time.Minute,
+	//}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 

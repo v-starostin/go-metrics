@@ -7,6 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-critic/go-critic v0.11.4
 	github.com/golang-migrate/migrate/v4 v4.17.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/jackc/pgx/v5 v5.5.2
 	github.com/mailru/easyjson v0.7.7
 	github.com/pkg/errors v0.9.1
@@ -14,6 +15,8 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/tools v0.22.0
+	google.golang.org/grpc v1.65.0
+	google.golang.org/protobuf v1.34.2
 	honnef.co/go/tools v0.4.7
 )
 
@@ -52,11 +55,13 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	golang.org/x/crypto v0.18.0 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20240213143201-ec583247a57a // indirect
 	golang.org/x/mod v0.18.0 // indirect
+	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
