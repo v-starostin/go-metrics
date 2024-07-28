@@ -20,6 +20,7 @@ type Config struct {
 	RateLimit       int    `env:"RATE_LIMIT"`
 	CryptoKey       string `env:"CRYPTO_KEY"`
 	JSONConfigPath  string `env:"CONFIG"`
+	TrustedSubnet   string `env:"TRUSTED_SUBNET"`
 }
 
 func NewAgent() (Config, error) {
@@ -100,6 +101,7 @@ func parseServerFlags() Config {
 	key := flag.String("k", "", "")
 	cryptoKey := flag.String("crypto-key", "", "Path to the private key")
 	cfg := flag.String("config", "", "Path to JSON config file")
+	trustedSubnet := flag.String("t", "", "Trusted subnet")
 	flag.Parse()
 
 	return Config{
@@ -111,6 +113,7 @@ func parseServerFlags() Config {
 		Key:             *key,
 		CryptoKey:       *cryptoKey,
 		JSONConfigPath:  *cfg,
+		TrustedSubnet:   *trustedSubnet,
 	}
 }
 
@@ -157,6 +160,9 @@ func mergeConfigs(target, source *Config) {
 	}
 	if target.CryptoKey == "" && source.CryptoKey != "" {
 		target.CryptoKey = source.CryptoKey
+	}
+	if target.TrustedSubnet == "" && source.TrustedSubnet != "" {
+		target.TrustedSubnet = source.TrustedSubnet
 	}
 }
 

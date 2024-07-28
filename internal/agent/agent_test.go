@@ -11,14 +11,14 @@ import (
 
 	"github.com/rs/zerolog"
 	mmock "github.com/stretchr/testify/mock"
-	"github.com/v-starostin/go-metrics/internal/model"
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/mock"
+	"github.com/v-starostin/go-metrics/internal/model"
 )
 
 func BenchmarkCollectRuntimeMetrics(b *testing.B) {
-	client := &mock.HTTPClient{}
+	client := &mock.GoMetricsClient{}
 	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	b.ResetTimer()
@@ -32,7 +32,7 @@ func BenchmarkCollectRuntimeMetrics(b *testing.B) {
 }
 
 func BenchmarkCollectGopsutilMetrics(b *testing.B) {
-	client := &mock.HTTPClient{}
+	client := &mock.GoMetricsClient{}
 	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
 	b.ResetTimer()
@@ -47,7 +47,7 @@ func BenchmarkCollectGopsutilMetrics(b *testing.B) {
 
 func BenchmarkSendMetrics(b *testing.B) {
 	ctx := context.Background()
-	client := &mock.HTTPClient{}
+	client := &mock.GoMetricsClient{}
 	metrics := []model.AgentMetric{
 		{MType: "gauge", ID: "metric0", Value: float64(10)},
 		{MType: "gauge", ID: "metric1", Value: float64(11)},
@@ -93,6 +93,6 @@ func BenchmarkSendMetrics(b *testing.B) {
 		}()
 
 		b.StartTimer()
-		a.SendMetrics(ctx, ch)
+		a.SendMetrics(ctx, ch, "192.168.8.22")
 	}
 }

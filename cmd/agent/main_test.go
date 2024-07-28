@@ -22,7 +22,7 @@ import (
 // Had to move it here from internal/agent since GHActions checks expect agent tests in cmd/agent
 func TestSendMetrics(t *testing.T) {
 	ctx := context.Background()
-	client := &mock.HTTPClient{}
+	client := &mock.GoMetricsClient{}
 	metrics := []model.AgentMetric{
 		{MType: "gauge", ID: "metric1", Value: float64(10)},
 	}
@@ -46,7 +46,7 @@ func TestSendMetrics(t *testing.T) {
 			Body:       io.NopCloser(strings.NewReader("test")),
 		}
 		client.On("Do", mmock.Anything).Once().Return(res, nil)
-		err := a.SendMetrics(ctx, ch)
+		err := a.SendMetrics(ctx, ch, "192.168.8.22")
 		assert.NoError(t, err)
 	})
 
@@ -64,14 +64,14 @@ func TestSendMetrics(t *testing.T) {
 		}()
 
 		client.On("Do", mmock.Anything).Once().Return(nil, fmt.Errorf("err"))
-		err := a.SendMetrics(ctx, ch)
+		err := a.SendMetrics(ctx, ch, "192.168.8.22")
 		assert.EqualError(t, err, "err")
 	})
 }
 
 func TestRetry(t *testing.T) {
 	ctx := context.Background()
-	client := &mock.HTTPClient{}
+	client := &mock.GoMetricsClient{}
 
 	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
@@ -131,7 +131,7 @@ func TestRetry(t *testing.T) {
 
 func TestCollectGopsutilMetrics(t *testing.T) {
 	ctx := context.Background()
-	client := &mock.HTTPClient{}
+	client := &mock.GoMetricsClient{}
 
 	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 
@@ -166,7 +166,7 @@ func TestCollectGopsutilMetrics(t *testing.T) {
 
 func TestCollectRuntimeMetrics(t *testing.T) {
 	ctx := context.Background()
-	client := &mock.HTTPClient{}
+	client := &mock.GoMetricsClient{}
 
 	a := agent.New(&zerolog.Logger{}, client, "0.0.0.0:8080", "key", nil)
 

@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"crypto/rsa"
-	"net/http"
+	"fmt"
+	"net"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -11,10 +12,13 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/v-starostin/go-metrics/internal/agent"
 	"github.com/v-starostin/go-metrics/internal/config"
 	"github.com/v-starostin/go-metrics/internal/crypto"
+	"github.com/v-starostin/go-metrics/internal/pb"
 )
 
 var (
@@ -34,9 +38,13 @@ func main() {
 		logger.Error().Err(err).Msg("Configuration error")
 		return
 	}
-	client := &http.Client{
-		Timeout: time.Minute,
+	conn, err := grpc.NewClient(cfg.ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Error().Err(err).Msg("Did not connect")
 	}
+	defer conn.Close()
+	client := pb.NewGoMetricsClient(conn)
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
@@ -60,10 +68,15 @@ func main() {
 	go a.CollectGopsutilMetrics(ctx, time.Duration(cfg.PollInterval)*time.Second)
 
 	metrics := a.PrepareMetrics(ctx, time.Duration(cfg.ReportInterval)*time.Second)
+	ip, err := getIP()
+	if err != nil {
+		logger.Error().Err(err).Msg("Error to get IP")
+		return
+	}
 
 	for i := 0; i < cfg.RateLimit; i++ {
 		go a.Retry(ctx, 3, func(ctx context.Context) error {
-			return a.SendMetrics(ctx, metrics)
+			return a.SendMetrics(ctx, metrics, ip)
 		}, 1*time.Second, 3*time.Second, 5*time.Second)
 	}
 
@@ -83,4 +96,19 @@ func getValue(s string) string {
 		return "N/A"
 	}
 	return s
+}
+
+func getIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, addr := range addrs {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			return ipNet.IP.String(), nil
+		}
+	}
+
+	return "", fmt.Errorf("no IP address found")
 }
