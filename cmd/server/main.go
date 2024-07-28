@@ -27,7 +27,7 @@ import (
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
-const GRPCPort = "8081"
+const GRPCPort = 8081
 
 var (
 	BuildVersion string
