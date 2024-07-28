@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -26,8 +25,6 @@ import (
 	"github.com/v-starostin/go-metrics/internal/repository"
 	"github.com/v-starostin/go-metrics/internal/service"
 )
-
-const GRPCPort = 8081
 
 var (
 	BuildVersion string
@@ -78,10 +75,12 @@ func main() {
 	h := handler.NewPostMetrics(ctx, &logger, svc, privateKey)
 
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(grpcmiddleware.ChainUnaryServer(
+		handler.CheckHashInterceptor(cfg.Key),
+		handler.CheckIPInterceptor(cfg.TrustedSubnet),
 		grpcrecovery.UnaryServerInterceptor(),
 	)))
 	pb.RegisterGoMetricsServer(grpcServer, h)
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", GRPCPort))
+	lis, err := net.Listen("tcp", cfg.ServerAddress)
 	if err != nil {
 		logger.Error().Err(err).Msg("Listening gRPC error")
 		return
@@ -119,7 +118,7 @@ func main() {
 	wg.Add(1)
 
 	go func() {
-		logger.Info().Msgf("GRPC server is listening on :%d", GRPCPort)
+		logger.Info().Msgf("GRPC server is listening on :%s", cfg.ServerAddress)
 		if err := grpcServer.Serve(lis); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
 			logger.Error().Err(err).Msg("Server error")
 			return

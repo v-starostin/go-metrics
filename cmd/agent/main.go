@@ -38,7 +38,7 @@ func main() {
 		logger.Error().Err(err).Msg("Configuration error")
 		return
 	}
-	conn, err := grpc.NewClient("localhost:8081", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(cfg.ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error().Err(err).Msg("Did not connect")
 	}

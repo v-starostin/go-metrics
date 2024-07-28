@@ -3,7 +3,11 @@ package agent
 import (
 	"compress/gzip"
 	"context"
+	"crypto/hmac"
 	"crypto/rsa"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"io"
 	"math/rand"
 	"net/http"
@@ -15,9 +19,10 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/shirou/gopsutil/v3/mem"
-	"github.com/v-starostin/go-metrics/internal/pb"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/v-starostin/go-metrics/internal/model"
+	"github.com/v-starostin/go-metrics/internal/pb"
 	"github.com/v-starostin/go-metrics/internal/service"
 )
 
@@ -66,6 +71,21 @@ func (a *Agent) SendMetrics(ctx context.Context, metrics <-chan []model.AgentMet
 		if !ok {
 			return nil
 		} else {
+			md := metadata.Pairs("X-Real-IP", ip)
+			if a.key != "" {
+				b, err := json.Marshal(m)
+				if err != nil {
+					return err
+				}
+				h := hmac.New(sha256.New, []byte(a.key))
+				if _, err = h.Write(b); err != nil {
+					return err
+				}
+				d := h.Sum(nil)
+				a.logger.Info().Msgf("hash: %x", d)
+				md.Set("HashSHA256", hex.EncodeToString(d))
+			}
+			metadata.NewOutgoingContext(ctx, md)
 			metrics := make([]*pb.Metric, len(m))
 			for i, metric := range m {
 				metrics[i] = &pb.Metric{
