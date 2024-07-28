@@ -2,8 +2,6 @@ syntax = "proto3";
 package pb;
 option go_package = "github.com/v-starostin/go-metrics/internal/pb";
 
-//import "google/api/annotations.proto";
-
 service GoMetrics {
   rpc PostMetrics(PostMetricsRequest) returns (PostMetricsResponse) {}
 }

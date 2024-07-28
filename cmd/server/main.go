@@ -36,7 +36,7 @@ var (
 )
 
 func main() {
-	application.Run()
+	//application.Run()
 
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 	logger.Info().Msgf("Build version: %s", getValue(BuildVersion))
